@@ -1,3 +1,7 @@
+
+CREATE DATABASE IF NOT EXIST gestion_deportes_universidad;
+USE gestion_deportes_universidad;
+
 CREATE TABLE ESTUDIANTE(
     id_estudiante int AUTO_INCREMENT,
     documento int,
