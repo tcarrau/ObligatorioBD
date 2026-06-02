@@ -158,7 +158,78 @@ elif opt == 2 :
         cursor.execute(sql, valores)
         cnx.commit()
         
-else : print('error')    
+elif opt == 3 :
+     accion = int(input('1 : Insertar, 2: Editar, 3 : Eliminar'))
+     if accion == 1 :
+          sql = """INSERT INTO ESPACIO_DEPORTIVO 
+          (nombre_espacio, ubicacion, capacidad)
+          VALUES (%s, %s, %s)"""
+          nombre_espacio = input('Nombre : ')
+          ubicacion = input('Ubicacion : ')
+          capacidad = int(input('Capacidad : '))
+          valores = (
+               nombre_espacio,
+               ubicacion,
+               capacidad
+          )
+
+          cursor.execute(sql, valores)
+          cnx.commit()
+     elif accion == 2 :
+        cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO")
+        espacios = cursor.fetchall()
+        print("\n=== ESPACIOS DEPORTIVOS ===")
+
+        for espacio in espacios:
+                print(
+                f"ID: {espacio[0]} | "
+                f"Nombre espacio: {espacio[1]}| "
+                f"Ubicacion: {espacio[2]} |"
+                f"Capacidad: {espacio[3]}"
+            )
+        editarID = input('ID a cambiar: ')
+        newNombre_espacio = input('Nuevo nombre : ')
+        newUbicacion = input('Nueva ubicacion : ')
+        newCapacidad = int(input('Nueva capacidad : '))
+       
+        valores = (
+             newNombre_espacio,
+             newUbicacion,
+             newCapacidad,
+             editarID
+        )
+       
+        sql = """UPDATE ESPACIO_DEPORTIVO 
+        SET nombre_espacio = %s,
+        ubicacion = %s,
+        capacidad = %s
+        WHERE id_espacio = %s"""
+       
+        cursor.execute(sql, valores)
+        cnx.commit()
+
+     elif accion == 3 :
+
+        cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO")
+        espacios = cursor.fetchall()
+        print("\n=== ESPACIOS DEPORTIVOS ===")
+
+        for espacio in espacios:
+                print(
+                f"ID: {espacio[0]} | "
+                f"Nombre espacio: {espacio[1]}| "
+                f"Ubicacion: {espacio[2]} |"
+                f"Capacidad: {espacio[3]}"
+            )
+                
+        eliminarID = int(input('ID a eliminar : '))
+        sql = """DELETE FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s"""
+        valores = (eliminarID,)
+        cursor.execute(sql, valores)
+        cnx.commit()
+     else : 
+          print('error')
+else : print('error')  
                 
         
           
