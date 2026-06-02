@@ -2,7 +2,7 @@ import mysql.connector
 cnx = mysql.connector.connect(user='root', password='Locostib2005.', host='127.0.0.1', database='gestion_deportes_universidad')
 cursor =cnx.cursor()
 
-print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 ..')
+print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 ..')
 opt = int(input())
 #ESTUDIANTES
 
