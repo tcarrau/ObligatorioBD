@@ -172,3 +172,4 @@ INSERT INTO ASISTENCIA (id_inscripcion, fecha, asistio) VALUES
 (18, '2026-03-18', TRUE),
 (19, '2026-03-18', FALSE),
 (20, '2026-03-19', TRUE);
+
