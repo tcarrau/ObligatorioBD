@@ -1,8 +1,10 @@
+import datetime
+from datetime import datetime
 import mysql.connector
 cnx = mysql.connector.connect(user='root', password='Locostib2005.', host='127.0.0.1', database='gestion_deportes_universidad')
 cursor =cnx.cursor()
 
-print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 ..')
+print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades')
 opt = int(input())
 #ESTUDIANTES
 
@@ -229,8 +231,209 @@ elif opt == 3 :
         cnx.commit()
      else : 
           print('error')
-else : print('error')  
+elif opt == 4 :
+     accion = int(input('1: Insertar, 2: Editar, 3: Eliminar'))
+     if accion == 1 :
+            nombre_actividad = input('Nombre actividad : ')
+           
+            id_espacio = int(input('Id espacio'))
+            cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
+            espacio = cursor.fetchone()
+            if espacio is None :
+                print('no existe un espacio con ese ID')
+                exit()
+
+
+            id_disciplina = int(input('Id disciplina'))
+            cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
+            disciplina = cursor.fetchone()
+            if disciplina is None :
+                print('no existe una disciplina con ese ID')
+                exit()
+            
+            
+            
+            cupo = int(input('Cupo Maximo'))
+            diaSemana = input('Dia de semana')
+            
+            horario_inicio = None
+            while True:
+                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 try:
+                     # Intenta la conversión
+                     horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
+                     break  # Rompe el bucle si todo salió bien
+                 except ValueError:
+                     # Se ejecuta si el formato ingresado es incorrecto
+                     print("Formato incorrecto. Usa HH:MM:SS.")
+            
+            horario_final = None
+            while True:
+                 entrada = input("Ingresa la hora final (HH:MM:SS): ")
+                 try:
+                     # Intenta la conversión
+                     horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
+                     break  # Rompe el bucle si todo salió bien
+                 except ValueError:
+                     # Se ejecuta si el formato ingresado es incorrecto
+                     print("Formato incorrecto. Usa HH:MM:SS.")
+            
+            estado = input('Estado :')
+            if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
+                 print("NO EXISTE ESE ESTADO")
+                 exit()
+            else : 
+                 sql = """INSERT INTO ACTIVIDAD
+                 (nombre_actividad, id_espacio, id_disciplina, cupo_maximo, dia_semana, horario_inicio, horario_fin, estado)
+                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+
+                 valores = (
+                      nombre_actividad,
+                      id_espacio,
+                      id_disciplina,
+                      cupo,
+                      diaSemana,
+                      horario_inicio,
+                      horario_final,
+                      estado
+                 )
+
+                 cursor.execute(sql, valores)
+                 cnx.commit()
+     elif accion == 2 : 
+        cursor.execute("SELECT * FROM ACTIVIDAD")
+        actividades = cursor.fetchall()
+        print("\n=== ACTIVIDADES ===")
+
+        for actividad in actividades:
+                print(
+                f"ID: {actividad[0]} | "
+                f"Nombre actividad: {actividad[1]}| "
+                f"ID actividad: {actividad[2]} |"
+                f"ID disciplina: {actividad[3]} |"
+                f"cupo : {actividad[4]} |"
+                f"Dia : {actividad[5]} |"
+                f"horario inicio : {actividad[6]}|"
+                f"horario fin {actividad[7]}|"
+                f"estado : {actividad[8]}"
+            )
                 
+        editarID = int(input('ID de la actividad a modificar'))
+        cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(editarID,))
+        actividad = cursor.fetchone()
+        if actividad is None :
+            print('no existe un estudiante con ese ID')
+            exit()
+        else :
+            nombreActividad = input('Nombre Actividad :')
+            id_espacio = int(input('Id espacio'))
+            cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
+            espacio = cursor.fetchone()
+            if espacio is None :
+                print('no existe un espacio con ese ID')
+                exit()
+
+
+            id_disciplina = int(input('Id disciplina'))
+            cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
+            disciplina = cursor.fetchone()
+            if disciplina is None :
+                print('no existe una disciplina con ese ID')
+                exit()
+            
+            
+            
+            cupo = int(input('Cupo Maximo'))
+            diaSemana = input('Dia de semana')
+            
+            horario_inicio = None
+            while True:
+                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 try:
+                     # Intenta la conversión
+                     horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
+                     break  # Rompe el bucle si todo salió bien
+                 except ValueError:
+                     # Se ejecuta si el formato ingresado es incorrecto
+                     print("Formato incorrecto. Usa HH:MM:SS.")
+            
+            horario_final = None
+            while True:
+                 entrada = input("Ingresa la hora final (HH:MM:SS): ")
+                 try:
+                     # Intenta la conversión
+                     horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
+                     break  # Rompe el bucle si todo salió bien
+                 except ValueError:
+                     # Se ejecuta si el formato ingresado es incorrecto
+                     print("Formato incorrecto. Usa HH:MM:SS.")
+            
+            estado = input('Estado :')
+            if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
+                 print("NO EXISTE ESE ESTADO")
+                 exit()
+            else : 
+                 sql = """UPDATE ACTIVIDAD
+                 SET nombre_actividad = %s,
+                 id_espacio = %s,
+                 id_disciplina = %s,
+                 cupo_maximo = %s,
+                 dia_semana = %s,
+                 horario_inicio = %s,
+                 horario_fin = %s,
+                 estado = %s
+                 WHERE id_actividad = %s"""
+                 valores = (
+                      nombreActividad,
+                      id_espacio,
+                      id_disciplina,
+                      cupo,
+                      diaSemana,
+                      horario_inicio,
+                      horario_final,
+                      estado,
+                      editarID
+                 )             
+                 cursor.execute(sql, valores)
+                 cnx.commit()
+     elif accion == 3 :
+        cursor.execute("SELECT * FROM ACTIVIDAD")
+        actividades = cursor.fetchall()
+        print("\n=== ACTIVIDADES ===")
+
+        for actividad in actividades:
+                print(
+                f"ID: {actividad[0]} | "
+                f"Nombre actividad: {actividad[1]}| "
+                f"ID actividad: {actividad[2]} |"
+                f"ID disciplina: {actividad[3]} |"
+                f"cupo : {actividad[4]} |"
+                f"Dia : {actividad[5]} |"
+                f"horario inicio : {actividad[6]}|"
+                f"horario fin {actividad[7]}|"
+                f"estado : {actividad[8]}"
+            )
+        borrarID = int(input('id a borrar\n'))
+        cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(borrarID,))
+        actividad = cursor.fetchone()
+        if actividad is None :
+            print('no existe una actividad con ese ID')
+            exit()
+        else : 
+             sql = """DELETE FROM ACTIVIDAD WHERE id_actividad = %s"""
+             valores = (borrarID,)
+             cursor.execute(sql, valores)
+             cnx.commit()
+     else : 
+        print('error')
+        exit()
+else : exit()
+                
+            
+
+            
+            
+          
         
           
     
