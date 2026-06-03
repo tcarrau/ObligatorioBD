@@ -4,7 +4,57 @@ import mysql.connector
 cnx = mysql.connector.connect(user='root', password='Locostib2005.', host='127.0.0.1', database='gestion_deportes_universidad')
 cursor =cnx.cursor()
 
-print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades')
+def inscirpcion_estudiante(cnx, id_estudiante, id_actividad) :
+    cursor = cnx.cursor(dictionary=True)
+    cursor.execute(("""SELECT cupo_maximo, estado FROM ACTIVIDAD
+                   WHERE id_actividad = %s"""), (id_actividad,))
+    actividad = cursor.fetchone()
+
+
+    if actividad is None or actividad['estado'] != 'abierta' : 
+         print('error')
+         return
+    else : 
+         cursor.execute(("""SELECT * FROM INSCRIPCION
+                        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion NOT IN ('cancelada')"""), (id_estudiante, id_actividad))
+         duplicado = cursor.fetchone()
+         if duplicado is None :
+              
+                cursor.execute("""SELECT COUNT(*) as cupo_actual FROM INSCRIPCION
+                WHERE id_actividad = %s AND estado_inscripcion = 'inscripto'
+                """, (id_actividad,))
+                
+                resultado = cursor.fetchone()
+                cupo_actual = resultado['cupo_actual']
+                if cupo_actual < actividad['cupo_maximo']:  
+
+                     estado_inscripcion = 'inscripto'
+                     print('INSCRIPCION POSIBLE')
+                else : 
+                     estado_inscripcion = 'lista_espera'
+                     print('LISTA DE ESPERA')
+
+                sql = """INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion)
+                            VALUES (%s, %s, CURDATE(), %s)"""
+                valores = (
+                          id_estudiante,
+                          id_actividad,
+                          estado_inscripcion
+                     )
+
+                
+                cursor.execute(sql, valores)
+                cnx.commit()
+                print('Inscripcion realizada correctamente')
+         else : 
+              print('esta duplicado')
+              return
+    return  
+    
+
+
+
+print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades, 5 Inscripciones')
 opt = int(input())
 #ESTUDIANTES
 
@@ -322,7 +372,7 @@ elif opt == 4 :
         cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(editarID,))
         actividad = cursor.fetchone()
         if actividad is None :
-            print('no existe un estudiante con ese ID')
+            print('no existe una actividad con ese ID')
             exit()
         else :
             nombreActividad = input('Nombre Actividad :')
@@ -427,12 +477,27 @@ elif opt == 4 :
      else : 
         print('error')
         exit()
+elif opt == 5 : 
+     id_actividad = int(input('ID a actividad\n'))
+     cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(id_actividad,))
+     actividad = cursor.fetchone()
+     if actividad is None :
+         print('no existe una actividad con ese ID')
+         exit()
+     id_estudiante = int(input("ID del estudiante: "))
+     cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
+     estudiante = cursor.fetchone()
+     if estudiante is None :
+         print('no existe un estudiante con ese ID')
+         exit()
+     inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
 else : exit()
+     
                 
             
 
             
-            
+
           
         
           
