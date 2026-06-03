@@ -1,3 +1,6 @@
+CREATE DATABASE IF NOT EXISTS gestion_deportes_universidad;
+USE gestion_deportes_universidad;
+
 CREATE TABLE ESTUDIANTE(
     id_estudiante int AUTO_INCREMENT,
     documento int,
@@ -46,7 +49,7 @@ CREATE TABLE INSCRIPCION(
     id_estudiante int,
     id_actividad int,
     fecha_inscripcion DATE,
-    estado ENUM('abierta', 'cerrada', 'finalizada', 'cancelada') NOT NULL DEFAULT 'abierta',
+    estado_inscripcion ENUM('inscripto', 'lista_espera', 'cancelada'),
     PRIMARY KEY(id_inscripcion),
     FOREIGN KEY(id_estudiante) REFERENCES ESTUDIANTE(id_estudiante),
     FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad)
@@ -125,32 +128,29 @@ VALUES
 -- INSERTS INSCRIPCION
 -- =========================
 
-INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado) VALUES
-(1, 1, '2026-03-01', 'abierta'),
-(2, 1, '2026-03-02', 'abierta'),
-(3, 5, '2026-03-02', 'abierta'),
-(4, 2, '2026-03-03', 'abierta'),
-(5, 8, '2026-03-03', 'abierta'),
-(6, 9, '2026-03-04', 'cerrada'),
-(7, 10, '2026-03-04', 'finalizada'),
-(8, 4, '2026-03-05', 'cerrada'),
-(9, 7, '2026-03-05', 'abierta'),
-(10, 1, '2026-03-06', 'abierta'),
-(11, 8, '2026-03-06', 'abierta'),
-(12, 9, '2026-03-07', 'cerrada'),
-(13, 2, '2026-03-07', 'abierta'),
-(14, 6, '2026-03-08', 'abierta'),
-(15, 3, '2026-03-08', 'abierta'),
-(1, 7, '2026-03-09', 'abierta'),
-(2, 8, '2026-03-09', 'abierta'),
-(3, 10, '2026-03-10', 'finalizada'),
-(4, 5, '2026-03-10', 'abierta'),
-(5, 3, '2026-03-11', 'abierta');
+INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion) VALUES
+(1, 1, '2026-03-01', 'inscripto'),
+(2, 1, '2026-03-02', 'inscripto'),
+(3, 5, '2026-03-02', 'inscripto'),
+(4, 2, '2026-03-03', 'inscripto'),
+(5, 8, '2026-03-03', 'inscripto'),
+(6, 9, '2026-03-04', 'cancelada'),
+(7, 10, '2026-03-04', 'cancelada'),
+(8, 4, '2026-03-05', 'cancelada'),
+(9, 7, '2026-03-05', 'inscripto'),
+(10, 1, '2026-03-06', 'inscripto'),
+(11, 8, '2026-03-06', 'inscripto'),
+(12, 9, '2026-03-07', 'cancelada'),
+(13, 2, '2026-03-07', 'inscripto'),
+(14, 6, '2026-03-08', 'inscripto'),
+(15, 3, '2026-03-08', 'inscripto'),
+(1, 7, '2026-03-09', 'inscripto'),
+(2, 8, '2026-03-09', 'inscripto'),
+(3, 10, '2026-03-10', 'cancelada'),
+(4, 5, '2026-03-10', 'inscripto'),
+(5, 3, '2026-03-11', 'inscripto');
 
--- =========================
--- INSERTS ASISTENCIA
--- =========================
-
+-- Reinsertar asistencias igual que antes
 INSERT INTO ASISTENCIA (id_inscripcion, fecha, asistio) VALUES
 (1, '2026-03-10', TRUE),
 (2, '2026-03-10', TRUE),
@@ -172,4 +172,5 @@ INSERT INTO ASISTENCIA (id_inscripcion, fecha, asistio) VALUES
 (18, '2026-03-18', TRUE),
 (19, '2026-03-18', FALSE),
 (20, '2026-03-19', TRUE);
+
 
