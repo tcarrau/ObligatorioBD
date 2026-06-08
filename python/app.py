@@ -62,6 +62,21 @@ def actividadMaxInscriptos(cnx) :
      actividad = cursor.fetchone()
      print('la actividad con mayor inscripciones es:  %s\n con %s inscriptos' % (actividad[1], actividad[2]))
 
+
+def actividadesCuposDisponibles(cnx) :
+    cursor = cnx.cursor()
+    cursor.execute("""SELECT a.id_actividad, a.nombre_actividad, COUNT(*) as cantidadInscriptos
+                   FROM ACTIVIDAD a
+                   LEFT JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
+                   GROUP BY a.id_actividad, a.nombre_actividad, a.cupo_maximo
+                   HAVING a.cupo_maximo > COUNT(*);""")
+    actividades = cursor.fetchall()
+    print('actividades disponibles\n')
+    for actividad in actividades :
+         print(f'Actividad : {actividad[1]}\n')
+
+
+
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
@@ -539,8 +554,8 @@ elif opt == 7 :
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
-     #elif numeroConsulta == 2
-
+     elif numeroConsulta == 2 :
+        actividadesCuposDisponibles(cnx)
 
 else : exit()
      
