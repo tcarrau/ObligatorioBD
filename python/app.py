@@ -52,9 +52,17 @@ def inscirpcion_estudiante(cnx, id_estudiante, id_actividad) :
     return  
     
 
+def actividadMaxInscriptos(cnx) :
+     cursor = cnx.cursor()
+     cursor.execute("""SELECT a.id_actividad, a.nombre_actividad, COUNT(*) as cantidadInscriptos FROM ACTIVIDAD a
+                    JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
+                    GROUP BY a.id_actividad, a.nombre_actividad
+                    ORDER BY cantidadInscriptos desc
+                    LIMIT 1;""")
+     actividad = cursor.fetchone()
+     print('la actividad con mayor inscripciones es:  %s\n con %s inscriptos' % (actividad[1], actividad[2]))
 
-
-print('Seleccione un tipo para reealizar un ABM:  1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades, 5 Inscripciones')
+print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
 
@@ -491,6 +499,49 @@ elif opt == 5 :
          print('no existe un estudiante con ese ID')
          exit()
      inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
+elif opt == 6 :
+    
+    id_actividad = int(input('ID a actividad\n'))
+    cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(id_actividad,))
+    actividad = cursor.fetchone()
+    if actividad is None :
+        print('no existe una actividad con ese ID')
+        exit()
+
+    id_estudiante = int(input("ID del estudiante: "))
+    cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
+    estudiante = cursor.fetchone()
+    if estudiante is None :
+        print('no existe un estudiante con ese ID')
+        exit()
+    
+    cursor.execute("""SELECT * FROM INSCRIPCION
+        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion = 'inscripto'""", (estudiante, actividad))
+    inscripcion = cursor.fetchone()
+    if inscripcion is None :
+        print("No existe una incripcion con ese estudiante y esa actividad o esta en lista de espera")
+        exit()    
+   
+    while True:
+                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 try:
+                     # Intenta la conversión
+                     horario_inicio = datetime.strptime(entrada, "%H:%M").time()
+                     break  # Rompe el bucle si todo salió bien
+                 except ValueError:
+                     # Se ejecuta si el formato ingresado es incorrecto
+                     print("Formato incorrecto. Usa HH:MM:SS.")
+    
+
+elif opt == 7 : 
+     numeroConsulta = int(input('numero de consulta a realizar 1 Actividad con max inscriptos'))
+
+
+     if numeroConsulta == 1 :
+        actividadMaxInscriptos(cnx)   
+     #elif numeroConsulta == 2
+
+
 else : exit()
      
                 
