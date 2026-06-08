@@ -55,6 +55,16 @@ CREATE TABLE INSCRIPCION(
     FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad)
 
 );
+
+CREATE TABLE ASISTENCIA(
+    id_asistencia int AUTO_INCREMENT,
+    id_inscripcion int,
+    fecha DATE,
+    asistio bool,
+
+    PRIMARY KEY(id_asistencia),
+    FOREIGN KEY(id_inscripcion) REFERENCES INSCRIPCION(id_inscripcion)
+);
 -- =========================
 -- INSERTS ESTUDIANTE
 -- =========================
