@@ -86,6 +86,15 @@ def cantInscriptosDisciplina(cnx) :
     for disciplina in disciplinas :
          print(f'Disciplina : {disciplina[0]}, Cantidad inscriptos : {disciplina[1]}')
         
+def cantInscriptosFacultad(cnx) :
+    cursor = cnx.cursor()
+    cursor.execute("""SELECT e.facultad, COUNT(*) as cantInscriptos FROM ESTUDIANTE e
+                   JOIN INSCRIPCION i on e.id_estudiante = i.id_estudiante
+                   GROUP BY e.facultad;""")
+    
+    facultades = cursor.fetchall()
+    for facultad in facultades :
+         print(f'Facultad : {facultad[0]}, cantidad inscriptos : {facultad[1]}')
 
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
@@ -559,15 +568,20 @@ elif opt == 6 :
     
 
 elif opt == 7 : 
-     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n'))
-
+     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
+
      elif numeroConsulta == 2 :
         actividadesCuposDisponibles(cnx)
+
      elif numeroConsulta == 3 : 
         cantInscriptosDisciplina(cnx)
+     
+     elif numeroConsulta == 4 :
+        cantInscriptosFacultad(cnx)
+    
 else : exit()
      
                 
