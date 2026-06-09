@@ -113,6 +113,30 @@ def porcentajeOcupacionActividad(cnx) :
     porcentaje = (actividad[2]/actividad[1]) * 100
     return porcentaje
 
+def porcentajeAsistenciaActividad(cnx) :
+    cursor = cnx.cursor()
+    id_actividad = int(input('ID actividad\n'))
+    cursor.execute("""SELECT id_actividad, COUNT(*) FROM ASISTENCIA
+                   WHERE id_actividad = %s AND asistio = True""", (id_actividad,))
+    asistio = cursor.fetchone()
+    asistencias = asistio[1]
+
+    cursor.execute("""SELECT id_actividad, COUNT(*) FROM ASISTENCIA
+                   WHERE id_actividad = %s""", (id_actividad,))
+    total = cursor.fetchone()
+    clasesTotales = total[1]
+    if clasesTotales == 0 :
+         print('No hubo clases de esa actividad')
+         exit()
+    if total is None or asistio is None :
+         print('nadie asistio a esa actividad')
+         exit()
+    porcentaje = (asistencias/clasesTotales) * 100
+    print(f'Porcentaje de asistencias es : {porcentaje} %')
+    return
+
+
+
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
@@ -585,7 +609,7 @@ elif opt == 6 :
     
 
 elif opt == 7 : 
-     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad'))
+     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n 6 porcentaje de asistencia por actividad'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
@@ -604,7 +628,10 @@ elif opt == 7 :
         if porciento is None :
             exit()
         print(f'ocupada al : {porciento} % ')
+     elif numeroConsulta == 6 :
+        porcentajeAsistenciaActividad(cnx)
 else : exit()
+
      
                 
             
