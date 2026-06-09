@@ -135,7 +135,21 @@ def porcentajeAsistenciaActividad(cnx) :
     print(f'Porcentaje de asistencias es : {porcentaje} %')
     return
 
+def estudiantesConInasistencias(cnx) :
+    cursor = cnx.cursor()
 
+    cursor.execute("""SELECT e.nombre, e.documento, COUNT(*) as inasistencias FROM ASISTENCIA a
+                   JOIN ESTUDIANTE e on e.id_estudiante = a.id_estudiante
+                   WHERE asistio = FALSE
+                   GROUP BY e.nombre, e.documento
+                   HAVING inasistencias > 2""")
+    
+    estudiantes = cursor.fetchall()
+    if estudiantes is None :
+        print('No hay estudiantes con 3 o mas inasistencias')
+        exit() 
+    for estudiante in estudiantes :
+         print(f'nombre : {estudiante[0]} documento : {estudiante[1]}')
 
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
@@ -609,7 +623,9 @@ elif opt == 6 :
     
 
 elif opt == 7 : 
-     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n 6 porcentaje de asistencia por actividad'))
+     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
+     ' 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
+     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
@@ -630,6 +646,9 @@ elif opt == 7 :
         print(f'ocupada al : {porciento} % ')
      elif numeroConsulta == 6 :
         porcentajeAsistenciaActividad(cnx)
+
+     elif numeroConsulta == 7 :
+        estudiantesConInasistencias(cnx)
 else : exit()
 
      
