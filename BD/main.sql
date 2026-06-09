@@ -61,9 +61,11 @@ CREATE TABLE ASISTENCIA(
     id_actividad int,
     fecha DATE,
     asistio bool,
+    id_estudiante int,
 
     PRIMARY KEY(id_asistencia),
-    FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad)
+    FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad),
+    FOREIGN KEY(id_estudiante) REFERENCES ESTUDIANTE(id_estudiante)
 );
 -- =========================
 -- INSERTS ESTUDIANTE
@@ -161,26 +163,29 @@ INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_
 (5, 3, '2026-03-11', 'inscripto');
 
 -- Reinsertar asistencias igual que antes
-INSERT INTO ASISTENCIA (id_actividad, fecha, asistio) VALUES
-(1, '2026-03-13', TRUE),
-(1, '2026-03-10', TRUE),
-(1, '2026-03-20', FALSE),
-(2, '2026-03-11', TRUE),
-(2, '2026-03-10', TRUE),
-(2, '2026-03-12', FALSE),
-(3, '2026-03-12', TRUE),
-(3, '2026-03-13', TRUE),
-(3, '2026-03-19', FALSE),
-(4, '2026-03-14', TRUE),
-(4, '2026-03-16', TRUE),
-(4, '2026-03-19', FALSE),
-(5, '2026-03-15', TRUE),
-(5, '2026-03-16', TRUE),
-(5, '2026-03-20', TRUE),
-(6, '2026-03-17', FALSE),
-(6, '2026-03-10', TRUE),
-(7, '2026-03-18', TRUE),
-(7, '2026-03-10', FALSE),
-(7, '2026-03-15', TRUE);
+INSERT INTO ASISTENCIA (id_actividad, fecha, asistio, id_estudiante) VALUES
+-- Fútbol Recreativo (actividad 1)
+(1, '2026-04-06', TRUE, 1),
+(1, '2026-04-06', TRUE, 2),
+(1, '2026-04-06', FALSE, 10),
 
+-- Basketball Intermedio (actividad 2)
+(2, '2026-04-07', TRUE, 4),
+(2, '2026-04-07', TRUE, 13),
 
+-- Voley Mixto (actividad 3)
+(3, '2026-04-08', TRUE, 15),
+(3, '2026-04-08', FALSE, 5),
+
+-- Natación Libre (actividad 5)
+(5, '2026-04-10', TRUE, 3),
+(5, '2026-04-10', TRUE, 4),
+
+-- Running Club (actividad 7)
+(7, '2026-04-12', TRUE, 9),
+(7, '2026-04-12', FALSE, 1),
+
+-- Yoga Relax (actividad 8)
+(8, '2026-04-07', TRUE, 5),
+(8, '2026-04-07', TRUE, 11),
+(8, '2026-04-07', FALSE, 2)
