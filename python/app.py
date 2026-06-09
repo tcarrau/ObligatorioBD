@@ -550,14 +550,14 @@ elif opt == 6 :
         exit()
     
     cursor.execute("""SELECT * FROM INSCRIPCION
-        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion = 'inscripto'""", (estudiante, actividad))
+        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion = 'inscripto'""", (id_estudiante, id_actividad))
     inscripcion = cursor.fetchone()
     if inscripcion is None :
         print("No existe una incripcion con ese estudiante y esa actividad o esta en lista de espera")
         exit()    
    
     while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 entrada = input("Ingresa la hora de inicio (HH:MM): ")
                  try:
                      # Intenta la conversión
                      horario_inicio = datetime.strptime(entrada, "%H:%M").time()
