@@ -96,6 +96,23 @@ def cantInscriptosFacultad(cnx) :
     for facultad in facultades :
          print(f'Facultad : {facultad[0]}, cantidad inscriptos : {facultad[1]}')
 
+
+def porcentajeOcupacionActividad(cnx) :
+    cursor = cnx.cursor()
+    id_actividad = int(input('ID de la actividad'))
+
+    cursor.execute("""SELECT a.id_actividad, a.cupo_maximo, COUNT(*) FROM ACTIVIDAD a
+                   JOIN INSCRIPCION i on a.id_actividad = i.id_actividad
+                   WHERE a.id_actividad = %s AND i.estado_inscripcion = 'inscripto'
+                   GROUP BY a.id_actividad, a.cupo_maximo""", (id_actividad,))
+    
+    actividad = cursor.fetchone()
+    if actividad is None :
+         print('ocupada al 0 %')
+         return
+    porcentaje = (actividad[2]/actividad[1]) * 100
+    return porcentaje
+
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
@@ -568,7 +585,7 @@ elif opt == 6 :
     
 
 elif opt == 7 : 
-     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad'))
+     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
@@ -581,7 +598,12 @@ elif opt == 7 :
      
      elif numeroConsulta == 4 :
         cantInscriptosFacultad(cnx)
-    
+
+     elif numeroConsulta == 5 :
+        porciento = porcentajeOcupacionActividad(cnx)
+        if porciento is None :
+            exit()
+        print(f'ocupada al : {porciento} % ')
 else : exit()
      
                 
