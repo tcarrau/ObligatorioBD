@@ -165,6 +165,37 @@ def actividadesListaEspera(cnx) :
     for actividad in actividades :
          print(f"nombre : {actividad[0]}")
 
+def registrarAsistencia(cnx) :
+
+    cursor = cnx.cursor()
+    id_estudiante = int(input("ID estudiante: "))
+    id_actividad = int(input("ID actividad: "))
+    fecha = input("Fecha (AAAA-MM-DD): ")
+    asistio = input("¿Asistió? (s/n): ").lower() == "s"
+    
+
+    cursor.execute("""
+        SELECT *
+        FROM INSCRIPCION
+        WHERE id_estudiante = %s
+          AND id_actividad = %s
+          AND estado_inscripcion = 'inscripto'
+    """, (id_estudiante, id_actividad))
+    inscripcion = cursor.fetchone()
+
+    if inscripcion is None:
+        print("Error: el estudiante no tiene una inscripción confirmada en esta actividad.")
+        return
+
+    cursor.execute("""
+        INSERT INTO ASISTENCIA
+        (id_actividad, fecha, asistio, id_estudiante)
+        VALUES (%s, %s, %s, %s)
+    """, (id_actividad, fecha, asistio, id_estudiante))
+    cnx.commit()
+
+    print("Asistencia registrada correctamente.")
+
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
@@ -603,39 +634,8 @@ elif opt == 5 :
          exit()
      inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
 elif opt == 6 :
+    registrarAsistencia(cnx)
     
-    id_actividad = int(input('ID a actividad\n'))
-    cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(id_actividad,))
-    actividad = cursor.fetchone()
-    if actividad is None :
-        print('no existe una actividad con ese ID')
-        exit()
-
-    id_estudiante = int(input("ID del estudiante: "))
-    cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
-    estudiante = cursor.fetchone()
-    if estudiante is None :
-        print('no existe un estudiante con ese ID')
-        exit()
-    
-    cursor.execute("""SELECT * FROM INSCRIPCION
-        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion = 'inscripto'""", (id_estudiante, id_actividad))
-    inscripcion = cursor.fetchone()
-    if inscripcion is None :
-        print("No existe una incripcion con ese estudiante y esa actividad o esta en lista de espera")
-        exit()    
-   
-    while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM): ")
-                 try:
-                     # Intenta la conversión
-                     horario_inicio = datetime.strptime(entrada, "%H:%M").time()
-                     break  # Rompe el bucle si todo salió bien
-                 except ValueError:
-                     # Se ejecuta si el formato ingresado es incorrecto
-                     print("Formato incorrecto. Usa HH:MM:SS.")
-    
-
 elif opt == 7 : 
      numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
      ' 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
