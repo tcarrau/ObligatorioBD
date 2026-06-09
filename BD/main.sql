@@ -58,12 +58,12 @@ CREATE TABLE INSCRIPCION(
 
 CREATE TABLE ASISTENCIA(
     id_asistencia int AUTO_INCREMENT,
-    id_inscripcion int,
+    id_actividad int,
     fecha DATE,
     asistio bool,
 
     PRIMARY KEY(id_asistencia),
-    FOREIGN KEY(id_inscripcion) REFERENCES INSCRIPCION(id_inscripcion)
+    FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad)
 );
 -- =========================
 -- INSERTS ESTUDIANTE
@@ -161,26 +161,26 @@ INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_
 (5, 3, '2026-03-11', 'inscripto');
 
 -- Reinsertar asistencias igual que antes
-INSERT INTO ASISTENCIA (id_inscripcion, fecha, asistio) VALUES
+INSERT INTO ASISTENCIA (id_actividad, fecha, asistio) VALUES
+(1, '2026-03-13', TRUE),
 (1, '2026-03-10', TRUE),
+(1, '2026-03-20', FALSE),
+(2, '2026-03-11', TRUE),
 (2, '2026-03-10', TRUE),
-(3, '2026-03-10', FALSE),
-(4, '2026-03-11', TRUE),
-(5, '2026-03-11', TRUE),
-(6, '2026-03-12', FALSE),
-(7, '2026-03-12', TRUE),
-(8, '2026-03-13', TRUE),
-(9, '2026-03-13', FALSE),
-(10, '2026-03-14', TRUE),
-(11, '2026-03-14', TRUE),
-(12, '2026-03-15', FALSE),
-(13, '2026-03-15', TRUE),
-(14, '2026-03-16', TRUE),
-(15, '2026-03-16', TRUE),
-(16, '2026-03-17', FALSE),
-(17, '2026-03-17', TRUE),
-(18, '2026-03-18', TRUE),
-(19, '2026-03-18', FALSE),
-(20, '2026-03-19', TRUE);
+(2, '2026-03-12', FALSE),
+(3, '2026-03-12', TRUE),
+(3, '2026-03-13', TRUE),
+(3, '2026-03-19', FALSE),
+(4, '2026-03-14', TRUE),
+(4, '2026-03-16', TRUE),
+(4, '2026-03-19', FALSE),
+(5, '2026-03-15', TRUE),
+(5, '2026-03-16', TRUE),
+(5, '2026-03-20', TRUE),
+(6, '2026-03-17', FALSE),
+(6, '2026-03-10', TRUE),
+(7, '2026-03-18', TRUE),
+(7, '2026-03-10', FALSE),
+(7, '2026-03-15', TRUE);
 
 
