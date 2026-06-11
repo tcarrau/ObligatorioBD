@@ -179,6 +179,20 @@ def estudiantesNoInscriptos(cnx) :
     for estudiante in estudiantes :
          print(f"nombre : {estudiante[0]}, documento : {estudiante[1]}")
 
+def actividadConMasAusencias(cnx) :
+    cursor = cnx.cursor()
+    cursor.execute("""SELECT a.nombre_actividad, COUNT(*) as ausencias FROM ACTIVIDAD a
+                   JOIN ASISTENCIA asi on asi.id_actividad = a.id_actividad
+                   WHERE asi.asistio = FALSE
+                   GROUP BY a.nombre_actividad
+                   ORDER BY ausencias DESC
+                   LIMIT 1""")
+    
+    actividad = cursor.fetchone()
+    if actividad is None :
+        print("No hay actividades con ausencias")
+        exit()
+    print(f'La actividad con mas ausencias es : {actividad[0]} con {actividad[1]} ausencias')
 
 def registrarAsistencia(cnx) :
 
@@ -654,7 +668,8 @@ elif opt == 6 :
 elif opt == 7 : 
      numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
      ' 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
-     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n 9 Estudiantes no inscriptos en ninguna actividad\n'))
+     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n 9 Estudiantes no inscriptos en ninguna actividad\n'
+     ' 10 Actividades con mas porcentaje de ausencias\n'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
@@ -684,6 +699,9 @@ elif opt == 7 :
 
      elif numeroConsulta == 9 :
         estudiantesNoInscriptos(cnx)
+        
+     elif numeroConsulta == 10 :
+        actividadConMasAusencias(cnx)
 else : exit()
 
      
