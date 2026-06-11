@@ -165,6 +165,21 @@ def actividadesListaEspera(cnx) :
     for actividad in actividades :
          print(f"nombre : {actividad[0]}")
 
+def estudiantesNoInscriptos(cnx) :
+    cursor = cnx.cursor()
+    cursor.execute("""SELECT e.nombre, e.documento FROM ESTUDIANTE e
+                   LEFT JOIN INSCRIPCION i on e.id_estudiante = i.id_estudiante
+                   WHERE i.id_estudiante IS NULL""")
+    
+    estudiantes = cursor.fetchall()
+    if estudiantes is None :
+        print("No hay estudiantes sin inscripciones")
+        exit()
+    print('Los estudiantes sin inscripciones son :')
+    for estudiante in estudiantes :
+         print(f"nombre : {estudiante[0]}, documento : {estudiante[1]}")
+
+
 def registrarAsistencia(cnx) :
 
     cursor = cnx.cursor()
@@ -639,7 +654,7 @@ elif opt == 6 :
 elif opt == 7 : 
      numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
      ' 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
-     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n'))
+     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n 9 Estudiantes no inscriptos en ninguna actividad\n'))
 
      if numeroConsulta == 1 :
         actividadMaxInscriptos(cnx)   
@@ -666,6 +681,9 @@ elif opt == 7 :
 
      elif numeroConsulta == 8 :
         actividadesListaEspera(cnx)
+
+     elif numeroConsulta == 9 :
+        estudiantesNoInscriptos(cnx)
 else : exit()
 
      
