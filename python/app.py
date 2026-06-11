@@ -225,6 +225,21 @@ def registrarAsistencia(cnx) :
 
     print("Asistencia registrada correctamente.")
 
+
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+
+def hello_world():
+
+    return "<p>Hello, World!</p>"
+
+if __name__ == "__main__":
+
+    app.run(debug=True)
+
 print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
 opt = int(input())
 #ESTUDIANTES
@@ -708,7 +723,7 @@ else : exit()
                 
             
 
-            
+
 
           
         
