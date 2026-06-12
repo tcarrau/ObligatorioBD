@@ -245,6 +245,7 @@ def index():
         <button class="tab-btn active" onclick="showTab('estudiantes')">Estudiantes</button>
         <button class="tab-btn" onclick="showTab('actividades')">Actividades</button>
         <button class="tab-btn" onclick="showTab('disciplinas')">Disciplinas</button>
+        <button class="tab-btn" onclick="showTab('espacios')">Espacios</button>
         <button class="tab-btn" onclick="showTab('inscripciones')">Inscripciones</button>
     </div>
 
@@ -419,6 +420,45 @@ def index():
         <div id="msgEditDisc"></div>
     </div>
 
+    <!-- PESTAÑA ESPACIOS DEPORTIVOS -->
+    <div id="espacios" class="tab-content">
+        <h2>Espacios Deportivos</h2>
+
+        <h3>Crear Espacio</h3>
+        <form id="formNuevoEspacio">
+            <input type="text" id="espNombre" placeholder="Nombre del espacio" required>
+            <input type="text" id="espUbicacion" placeholder="Ubicación" required>
+            <input type="number" id="espCapacidad" placeholder="Capacidad" required>
+            <button type="button" onclick="crearEspacio()">Crear</button>
+        </form>
+        <div id="msgNuevoEsp"></div>
+
+        <h3>Lista de Espacios</h3>
+        <button onclick="cargarEspacios()">Recargar</button>
+        <table id="tabEspacios">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Ubicación</th>
+                    <th>Capacidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <h3 style="margin-top: 20px;">Editar Espacio</h3>
+        <form id="formEditarEspacio">
+            <input type="number" id="edtEspId" placeholder="ID a editar" required>
+            <input type="text" id="edtEspNombre" placeholder="Nuevo nombre" required>
+            <input type="text" id="edtEspUbicacion" placeholder="Nueva ubicación" required>
+            <input type="number" id="edtEspCapacidad" placeholder="Nueva capacidad" required>
+            <button type="button" onclick="editarEspacio()">Guardar cambios</button>
+        </form>
+        <div id="msgEditEsp"></div>
+    </div>
+
     <!-- PESTAÑA INSCRIPCIONES -->
     <div id="inscripciones" class="tab-content">
         <h2>Inscribir Estudiante</h2>
@@ -448,6 +488,7 @@ def index():
                     });
             }
             if (tabName === 'disciplinas') cargarDisciplinas();
+            if (tabName === 'espacios') cargarEspacios();
         }
 
         async function cargarEstudiantes() {
@@ -485,13 +526,19 @@ def index():
         }
 
         async function crearEstudiante() {
+            const nombre = document.getElementById('estNombre').value.trim();
+            const apellido = document.getElementById('estApellido').value.trim();
+            const email = document.getElementById('estEmail').value.trim();
+            const carrera = document.getElementById('estCarrera').value.trim();
+            const facultad = document.getElementById('estFacultad').value.trim();
+            const msg = document.getElementById('msgNuevoEst');
+            if (!nombre || !apellido || !email || !carrera || !facultad) {
+                msg.innerHTML = '<span class="error">Todos los campos de texto son obligatorios y no pueden contener solo espacios.</span>';
+                return;
+            }
             const data = {
                 documento: parseInt(document.getElementById('estDocumento').value),
-                nombre: document.getElementById('estNombre').value,
-                apellido: document.getElementById('estApellido').value,
-                email: document.getElementById('estEmail').value,
-                carrera: document.getElementById('estCarrera').value,
-                facultad: document.getElementById('estFacultad').value
+                nombre, apellido, email, carrera, facultad
             };
             const res = await fetch('/api/estudiantes', {
                 method: 'POST',
@@ -499,7 +546,6 @@ def index():
                 body: JSON.stringify(data)
             });
             const result = await res.json();
-            const msg = document.getElementById('msgNuevoEst');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 document.getElementById('formNuevoEstudiante').reset();
@@ -511,13 +557,19 @@ def index():
 
         async function editarEstudiante() {
             const id = parseInt(document.getElementById('edtId').value);
+            const nombre = document.getElementById('edtNombre').value.trim();
+            const apellido = document.getElementById('edtApellido').value.trim();
+            const email = document.getElementById('edtEmail').value.trim();
+            const carrera = document.getElementById('edtCarrera').value.trim();
+            const facultad = document.getElementById('edtFacultad').value.trim();
+            const msg = document.getElementById('msgEditEst');
+            if (!nombre.trim() || !apellido.trim() || !email.trim() || !carrera.trim() || !facultad.trim()) {
+                msg.innerHTML = '<span class="error">Todos los campos de texto son obligatorios y no pueden contener solo espacios.</span>';
+                return;
+            }
             const data = {
                 documento: parseInt(document.getElementById('edtDocumento').value),
-                nombre: document.getElementById('edtNombre').value,
-                apellido: document.getElementById('edtApellido').value,
-                email: document.getElementById('edtEmail').value,
-                carrera: document.getElementById('edtCarrera').value,
-                facultad: document.getElementById('edtFacultad').value
+                nombre, apellido, email, carrera, facultad
             };
             const res = await fetch(`/api/estudiantes/${id}`, {
                 method: 'PUT',
@@ -525,7 +577,6 @@ def index():
                 body: JSON.stringify(data)
             });
             const result = await res.json();
-            const msg = document.getElementById('msgEditEst');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 cargarEstudiantes();
@@ -657,8 +708,14 @@ def index():
         }
 
         async function crearActividad() {
+            const nombre = document.getElementById('actNombre').value.trim();
+            const msg = document.getElementById('msgNuevaAct');
+            if (!nombre) {
+                msg.innerHTML = '<span class="error">El nombre de la actividad no puede estar vacío ni contener solo espacios.</span>';
+                return;
+            }
             const data = {
-                nombre: document.getElementById('actNombre').value,
+                nombre,
                 cupo: parseInt(document.getElementById('actCupo').value),
                 estado: document.getElementById('actEstado').value,
                 id_disciplina: document.getElementById('actDisc').value || null,
@@ -669,7 +726,6 @@ def index():
             };
             const res = await fetch('/api/actividades', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             const result = await res.json();
-            const msg = document.getElementById('msgNuevaAct');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 document.getElementById('formNuevaActividad').reset();
@@ -681,8 +737,14 @@ def index():
 
         async function editarActividad() {
             const id = parseInt(document.getElementById('edtActId').value);
+            const nombre = document.getElementById('edtActNombre').value.trim();
+            const msg = document.getElementById('msgEditAct');
+            if (!nombre) {
+                msg.innerHTML = '<span class="error">El nombre de la actividad no puede estar vacío ni contener solo espacios.</span>';
+                return;
+            }
             const data = {
-                nombre: document.getElementById('edtActNombre').value,
+                nombre,
                 cupo: parseInt(document.getElementById('edtActCupo').value),
                 estado: document.getElementById('edtActEstado').value,
                 id_disciplina: document.getElementById('edtActDisc').value || null,
@@ -693,7 +755,6 @@ def index():
             };
             const res = await fetch(`/api/actividades/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             const result = await res.json();
-            const msg = document.getElementById('msgEditAct');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 cargarActividades();
@@ -762,10 +823,15 @@ def index():
         }
 
         async function crearDisciplina() {
-            const data = { nombre: document.getElementById('discNombre').value };
+            const nombre = document.getElementById('discNombre').value.trim();
+            const msg = document.getElementById('msgNuevaDisc');
+            if (!nombre) {
+                msg.innerHTML = '<span class="error">El nombre de la disciplina no puede estar vacío ni contener solo espacios.</span>';
+                return;
+            }
+            const data = { nombre };
             const res = await fetch('/api/disciplinas', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             const result = await res.json();
-            const msg = document.getElementById('msgNuevaDisc');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 document.getElementById('formNuevaDisciplina').reset();
@@ -777,10 +843,15 @@ def index():
 
         async function editarDisciplina() {
             const id = parseInt(document.getElementById('edtDiscId').value);
-            const data = { nombre: document.getElementById('edtDiscNombre').value };
+            const nombre = document.getElementById('edtDiscNombre').value.trim();
+            const msg = document.getElementById('msgEditDisc');
+            if (!nombre) {
+                msg.innerHTML = '<span class="error">El nombre de la disciplina no puede estar vacío ni contener solo espacios.</span>';
+                return;
+            }
+            const data = { nombre };
             const res = await fetch(`/api/disciplinas/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
             const result = await res.json();
-            const msg = document.getElementById('msgEditDisc');
             if (result.ok) {
                 msg.innerHTML = '<span class="success">' + result.msg + '</span>';
                 cargarDisciplinas();
@@ -796,6 +867,113 @@ def index():
             if (result.ok) {
                 alert('Disciplina eliminada');
                 cargarDisciplinas();
+            } else {
+                alert('Error: ' + result.msg);
+            }
+        }
+
+        let espaciosCache = [];
+
+        async function cargarEspacios() {
+            const tbody = document.querySelector('#tabEspacios tbody');
+            const msgDiv = document.getElementById('msgNuevoEsp');
+            try {
+                const res = await fetch('/api/espacios');
+                const data = await res.json();
+                if (!res.ok) {
+                    msgDiv.innerHTML = '<span class="error">Error: ' + (data.error || res.statusText) + '</span>';
+                    return;
+                }
+                espaciosCache = data;
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center">No hay espacios registrados</td></tr>';
+                    return;
+                }
+                data.forEach(e => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${e.id}</td>
+                        <td>${e.nombre}</td>
+                        <td>${e.ubicacion}</td>
+                        <td>${e.capacidad}</td>
+                        <td>
+                            <button onclick="cargarEditEspacio(${e.id})">Editar</button>
+                            <button class="danger" onclick="borrarEspacio(${e.id})">Borrar</button>
+                        </td>`;
+                    tbody.appendChild(tr);
+                });
+                msgDiv.innerHTML = '';
+            } catch (err) {
+                msgDiv.innerHTML = '<span class="error">' + err.message + '</span>';
+            }
+        }
+
+        function cargarEditEspacio(id) {
+            const e = espaciosCache.find(x => x.id === id);
+            if (!e) return;
+            document.getElementById('edtEspId').value = e.id;
+            document.getElementById('edtEspNombre').value = e.nombre;
+            document.getElementById('edtEspUbicacion').value = e.ubicacion;
+            document.getElementById('edtEspCapacidad').value = e.capacidad;
+            document.querySelector('#formEditarEspacio').scrollIntoView();
+        }
+
+        async function crearEspacio() {
+            const nombre = document.getElementById('espNombre').value.trim();
+            const ubicacion = document.getElementById('espUbicacion').value.trim();
+            const msg = document.getElementById('msgNuevoEsp');
+            if (!nombre || !ubicacion) {
+                msg.innerHTML = '<span class="error">El nombre y la ubicación no pueden estar vacíos ni contener solo espacios.</span>';
+                return;
+            }
+            const data = {
+                nombre,
+                ubicacion,
+                capacidad: parseInt(document.getElementById('espCapacidad').value)
+            };
+            const res = await fetch('/api/espacios', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.ok) {
+                msg.innerHTML = '<span class="success">' + result.msg + '</span>';
+                document.getElementById('formNuevoEspacio').reset();
+                cargarEspacios();
+            } else {
+                msg.innerHTML = '<span class="error">' + result.msg + '</span>';
+            }
+        }
+
+        async function editarEspacio() {
+            const id = parseInt(document.getElementById('edtEspId').value);
+            const nombre = document.getElementById('edtEspNombre').value.trim();
+            const ubicacion = document.getElementById('edtEspUbicacion').value.trim();
+            const msg = document.getElementById('msgEditEsp');
+            if (!nombre || !ubicacion) {
+                msg.innerHTML = '<span class="error">El nombre y la ubicación no pueden estar vacíos ni contener solo espacios.</span>';
+                return;
+            }
+            const data = {
+                nombre,
+                ubicacion,
+                capacidad: parseInt(document.getElementById('edtEspCapacidad').value)
+            };
+            const res = await fetch(`/api/espacios/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+            const result = await res.json();
+            if (result.ok) {
+                msg.innerHTML = '<span class="success">' + result.msg + '</span>';
+                cargarEspacios();
+            } else {
+                msg.innerHTML = '<span class="error">' + result.msg + '</span>';
+            }
+        }
+
+        async function borrarEspacio(id) {
+            if (!confirm('¿Seguro que deseas borrar este espacio?')) return;
+            const res = await fetch(`/api/espacios/${id}`, { method: 'DELETE' });
+            const result = await res.json();
+            if (result.ok) {
+                alert('Espacio eliminado');
+                cargarEspacios();
             } else {
                 alert('Error: ' + result.msg);
             }
@@ -939,10 +1117,51 @@ def api_get_disciplinas():
 @app.route("/api/espacios", methods=["GET"])
 def api_get_espacios():
     cursor = get_cnx().cursor()
-    cursor.execute("SELECT id_espacio, nombre_espacio FROM ESPACIO_DEPORTIVO")
+    cursor.execute("SELECT id_espacio, nombre_espacio, ubicacion, capacidad FROM ESPACIO_DEPORTIVO")
     rows = cursor.fetchall()
-    data = [{'id': r[0], 'nombre': r[1]} for r in rows]
+    data = [{'id': r[0], 'nombre': r[1], 'ubicacion': r[2], 'capacidad': r[3]} for r in rows]
     return jsonify(data)
+
+@app.route("/api/espacios", methods=["POST"])
+def api_create_espacio():
+    data = request.json
+    try:
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "INSERT INTO ESPACIO_DEPORTIVO (nombre_espacio, ubicacion, capacidad) VALUES (%s, %s, %s)",
+            (data.get('nombre'), data.get('ubicacion'), data.get('capacidad'))
+        )
+        cnx.commit()
+        return jsonify({'ok': True, 'msg': 'Espacio creado'}), 201
+    except Exception as e:
+        return jsonify({'ok': False, 'msg': str(e)}), 400
+
+@app.route("/api/espacios/<int:eid>", methods=["PUT"])
+def api_update_espacio(eid):
+    data = request.json
+    try:
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        cursor.execute(
+            "UPDATE ESPACIO_DEPORTIVO SET nombre_espacio=%s, ubicacion=%s, capacidad=%s WHERE id_espacio=%s",
+            (data.get('nombre'), data.get('ubicacion'), data.get('capacidad'), eid)
+        )
+        cnx.commit()
+        return jsonify({'ok': True, 'msg': 'Espacio actualizado'})
+    except Exception as e:
+        return jsonify({'ok': False, 'msg': str(e)}), 400
+
+@app.route("/api/espacios/<int:eid>", methods=["DELETE"])
+def api_delete_espacio(eid):
+    try:
+        cnx = get_cnx()
+        cursor = cnx.cursor()
+        cursor.execute("DELETE FROM ESPACIO_DEPORTIVO WHERE id_espacio=%s", (eid,))
+        cnx.commit()
+        return jsonify({'ok': True, 'msg': 'Espacio eliminado'})
+    except Exception as e:
+        return jsonify({'ok': False, 'msg': str(e)}), 400
 
 @app.route("/api/disciplinas", methods=["POST"])
 def api_create_disciplina():
