@@ -226,21 +226,7 @@ def registrarAsistencia(cnx) :
     print("Asistencia registrada correctamente.")
 
 
-from flask import Flask
-
-app = Flask(__name__)
-
-@app.route("/")
-
-def hello_world():
-
-    return "<p>Hello, World!</p>"
-
-if __name__ == "__main__":
-
-    app.run(debug=True)
-
-print('Seleccione una accion :  ABM(1 estudiantes, 2 disciplinas, 3 Espacios Derpotivos, 4 actividades), 5 Inscripciones, 6 registro de asistencias, 7 consultas')
+print('Seleccione una accion : \n 1 ABM estudiantes\n 2 ABM disciplinas\n 3 ABM Espacios Derpotivos\n 4 ABM actividades\n 5 Inscripciones\n 6 registro de asistencias\n 7 consultas')
 opt = int(input())
 #ESTUDIANTES
 
@@ -248,17 +234,22 @@ if opt == 1 : #agregar
     print('1: insertar, 2 : editar, 3: eliminar')
     InsEdEl = int(input())
     if InsEdEl == 1 :
-        documento = int(input("Documento: "))
+        while True :
+             try :
+                documento = int(input("Documento: \n"))
 
-        nombre = input("Nombre: ")
+                nombre = input("Nombre: \n")
 
-        apellido = input("Apellido: ")
+                apellido = input("Apellido: \n")
 
-        email = input("Email: ")
+                email = input("Email: \n")
 
-        carrera = input("Carrera: ")
+                carrera = input("Carrera: \n")
 
-        facultad = input("Facultad: ")
+                facultad = input("Facultad: \n")
+                break
+             except ValueError :
+                print('Alguno de los formatos no es correcto intentelo de vuelta')
 
         sql = """INSERT INTO ESTUDIANTE
 
@@ -298,19 +289,29 @@ if opt == 1 : #agregar
                 f"Nombre: {estudiante[1]} {estudiante[2]} | "
                 f"Documento: {estudiante[3]}"
             )
-        id_estudiante = int(input("ID del estudiante: "))
+        while True :
+                try :
+                     id_estudiante = int(input("ID del estudiante:\n "))
+                     break
+                except ValueError :
+                    print('ID debe ser un numero entero')
+
         cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
         estudiante = cursor.fetchone()
         if estudiante is None :
             print('no existe un estudiante con ese ID')
         else :
-
-            documento = int(input("Documento: "))
-            nombre = input("Nombre: ")
-            apellido = input("Apellido: ")
-            email = input("Email: ")
-            carrera = input("Carrera: ")
-            facultad = input("Facultad: ")
+            while True :
+                try :
+                     documento = int(input("Documento:\n "))
+                     nombre = input("Nombre:\n ")
+                     apellido = input("Apellido:\n ")
+                     email = input("Email:\n ")
+                     carrera = input("Carrera:\n ")
+                     facultad = input("Facultad:\n ")
+                     break
+                except ValueError :
+                    print('Alguna de las entradas no es del formato correcto, intente nuevamente')
 
             sql = """
             UPDATE ESTUDIANTE
@@ -336,7 +337,6 @@ if opt == 1 : #agregar
     elif InsEdEl == 3 :
         cursor.execute("SELECT * FROM ESTUDIANTE")
         estudiantes = cursor.fetchall()
-        #(44321098, 'Agustín', 'Silva', 'agustin.silva@fing.edu.uy', 'Ingeniería Mecánica', 'FING'),
         print("\n=== ESTUDIANTES ===")
 
         for estudiante in estudiantes:
@@ -345,14 +345,20 @@ if opt == 1 : #agregar
                 f"Nombre: {estudiante[1]} {estudiante[2]} | "
                 f"Documento: {estudiante[3]}"
             )
-        id_estudiante = int(input("ID del estudiante a eliminar: "))
+        while True : 
+             try : 
+                  id_estudiante = int(input("ID del estudiante a eliminar:\n "))
+                  break
+             except ValueError : 
+                  print('ID debe ser un numero entero')    
+
         cursor.execute("DELETE FROM ESTUDIANTE WHERE id_estudiante = %s", (id_estudiante,))
         cnx.commit()
 elif opt == 2 : 
-     accion = int(input('1: Insertar, 2: Editar, 3: Eliminar'))
+     accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
     
      if accion == 1 :
-            NombreDisciplina = input('Nombre de Disciplina :')
+            NombreDisciplina = input('Nombre de Disciplina : \n')
             sql = ("""INSERT INTO DISCIPLINA 
                          (nombre_disciplina)
                           VALUES (%s)""")
@@ -370,9 +376,14 @@ elif opt == 2 :
                 f"ID: {disciplina[0]} | "
                 f"Nombre: {disciplina[1]} | "
             )
+        while True : 
+             try : 
+                  id_disciplina = int(input('ID de la disciplina a editar :\n'))
+                  nombreDisciplina = input('nombre nuevo : \n')
+                  break
+             except ValueError : 
+                  print('ID debe ser un numero entero')
         
-        nombreDisciplina = input('nombre nuevo : ')
-        id_disciplina = int(input('ID de la disciplina a editar :'))
         sql = """UPDATE DISCIPLINA
                 SET nombre_disciplina = %s
                 WHERE id_disciplina = %s"""    
@@ -389,22 +400,34 @@ elif opt == 2 :
                 f"ID: {disciplina[0]} | "
                 f"Nombre: {disciplina[1]} | "
             )
-        
-        id_disciplina = int(input('ID a borrar:'))
+        while True : 
+             try : 
+                  id_disciplina = int(input('ID de la disciplina a eliminar :\n'))
+                  break
+             except ValueError : 
+                  print('ID debe ser un numero entero')
+
         sql = """DELETE FROM DISCIPLINA WHERE id_disciplina = %s"""
         valores = (id_disciplina,)
         cursor.execute(sql, valores)
         cnx.commit()
         
 elif opt == 3 :
-     accion = int(input('1 : Insertar, 2: Editar, 3 : Eliminar'))
+     accion = int(input('1 : Insertar, 2: Editar, 3 : Eliminar\n'))
      if accion == 1 :
           sql = """INSERT INTO ESPACIO_DEPORTIVO 
           (nombre_espacio, ubicacion, capacidad)
           VALUES (%s, %s, %s)"""
-          nombre_espacio = input('Nombre : ')
-          ubicacion = input('Ubicacion : ')
-          capacidad = int(input('Capacidad : '))
+          
+          while True :
+                try :
+                    nombre_espacio = input('Nombre : \n')
+                    ubicacion = input('Ubicacion : \n')
+                    capacidad = int(input('Capacidad : \n'))
+                    break
+                except ValueError :
+                    print('Alguno de los formatos no es correcto intentelo de vuelta')
+          
           valores = (
                nombre_espacio,
                ubicacion,
@@ -425,10 +448,15 @@ elif opt == 3 :
                 f"Ubicacion: {espacio[2]} |"
                 f"Capacidad: {espacio[3]}"
             )
-        editarID = input('ID a cambiar: ')
-        newNombre_espacio = input('Nuevo nombre : ')
-        newUbicacion = input('Nueva ubicacion : ')
-        newCapacidad = int(input('Nueva capacidad : '))
+        while True :
+             try : 
+                  editarID = int(input('ID a cambiar: \n'))
+                  newNombre_espacio = input('Nuevo nombre : \n')
+                  newUbicacion = input('Nueva ubicacion : \n')
+                  newCapacidad = int(input('Nueva capacidad : \n'))
+                  break
+             except ValueError :
+                  print('ID y capacidad deben ser numeros enteros')
        
         valores = (
              newNombre_espacio,
@@ -460,7 +488,13 @@ elif opt == 3 :
                 f"Capacidad: {espacio[3]}"
             )
                 
-        eliminarID = int(input('ID a eliminar : '))
+        while True :
+             try : 
+                  eliminarID = int(input('ID a eliminar :\n '))
+                  break
+             except ValueError :
+                  print('ID debe ser un numero entero')
+
         sql = """DELETE FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s"""
         valores = (eliminarID,)
         cursor.execute(sql, valores)
@@ -470,17 +504,28 @@ elif opt == 3 :
 elif opt == 4 :
      accion = int(input('1: Insertar, 2: Editar, 3: Eliminar'))
      if accion == 1 :
-            nombre_actividad = input('Nombre actividad : ')
-           
-            id_espacio = int(input('Id espacio'))
+        
+            nombre_actividad = input('Nombre actividad : \n')
+            while True :
+                 try : 
+                      id_espacio = int(input('Id espacio\n'))
+                      break
+                 except ValueError :
+                      print('ID debe ser un numero entero')
+
             cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
             espacio = cursor.fetchone()
             if espacio is None :
                 print('no existe un espacio con ese ID')
                 exit()
 
-
-            id_disciplina = int(input('Id disciplina'))
+            while True :
+                 try :
+                     id_disciplina = int(input('Id disciplina\n'))
+                     break
+                 except ValueError :
+                     print('ID debe ser un numero entero') 
+            
             cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
             disciplina = cursor.fetchone()
             if disciplina is None :
@@ -488,13 +533,17 @@ elif opt == 4 :
                 exit()
             
             
-            
-            cupo = int(input('Cupo Maximo'))
-            diaSemana = input('Dia de semana')
-            
+            while True :
+                 try :
+                    cupo = int(input('Cupo Maximo\n'))
+                    diaSemana = input('Dia de semana\n')
+                    break
+                 except ValueError :
+                    print('Alguno de los formatos no es correcto intentelo de vuelta')
+
             horario_inicio = None
             while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 entrada = input("Ingresa la hora de inicio (HH:MM:SS):\n ")
                  try:
                      # Intenta la conversión
                      horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
@@ -505,7 +554,7 @@ elif opt == 4 :
             
             horario_final = None
             while True:
-                 entrada = input("Ingresa la hora final (HH:MM:SS): ")
+                 entrada = input("Ingresa la hora final (HH:MM:SS):\n ")
                  try:
                      # Intenta la conversión
                      horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
@@ -514,28 +563,29 @@ elif opt == 4 :
                      # Se ejecuta si el formato ingresado es incorrecto
                      print("Formato incorrecto. Usa HH:MM:SS.")
             
-            estado = input('Estado :')
-            if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
-                 print("NO EXISTE ESE ESTADO")
-                 exit()
-            else : 
-                 sql = """INSERT INTO ACTIVIDAD
+            while True :
+                 estado = input('Estado :')
+                 if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
+                     print("NO EXISTE ESE ESTADO debe ser : abierta, cerrada, finalizada o cancelada\n")
+                 else :
+                     break
+
+            sql = """INSERT INTO ACTIVIDAD
                  (nombre_actividad, id_espacio, id_disciplina, cupo_maximo, dia_semana, horario_inicio, horario_fin, estado)
                  VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
 
-                 valores = (
-                      nombre_actividad,
-                      id_espacio,
-                      id_disciplina,
-                      cupo,
-                      diaSemana,
-                      horario_inicio,
-                      horario_final,
-                      estado
-                 )
-
-                 cursor.execute(sql, valores)
-                 cnx.commit()
+            valores = (
+                 nombre_actividad,
+                 id_espacio,
+                 id_disciplina,
+                 cupo,
+                 diaSemana,
+                 horario_inicio,
+                 horario_final,
+                 estado
+            )
+            cursor.execute(sql, valores)
+            cnx.commit()
      elif accion == 2 : 
         cursor.execute("SELECT * FROM ACTIVIDAD")
         actividades = cursor.fetchall()
@@ -554,15 +604,15 @@ elif opt == 4 :
                 f"estado : {actividad[8]}"
             )
                 
-        editarID = int(input('ID de la actividad a modificar'))
+        editarID = int(input('ID de la actividad a modificar\n'))
         cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(editarID,))
         actividad = cursor.fetchone()
         if actividad is None :
             print('no existe una actividad con ese ID')
             exit()
         else :
-            nombreActividad = input('Nombre Actividad :')
-            id_espacio = int(input('Id espacio'))
+            nombreActividad = input('Nombre Actividad :\n')
+            id_espacio = int(input('Id espacio\n'))
             cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
             espacio = cursor.fetchone()
             if espacio is None :
@@ -570,7 +620,7 @@ elif opt == 4 :
                 exit()
 
 
-            id_disciplina = int(input('Id disciplina'))
+            id_disciplina = int(input('Id disciplina\n'))
             cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
             disciplina = cursor.fetchone()
             if disciplina is None :
@@ -579,12 +629,12 @@ elif opt == 4 :
             
             
             
-            cupo = int(input('Cupo Maximo'))
-            diaSemana = input('Dia de semana')
+            cupo = int(input('Cupo Maximo\n'))
+            diaSemana = input('Dia de semana\n')
             
             horario_inicio = None
             while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): ")
+                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): \n")
                  try:
                      # Intenta la conversión
                      horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
@@ -595,7 +645,7 @@ elif opt == 4 :
             
             horario_final = None
             while True:
-                 entrada = input("Ingresa la hora final (HH:MM:SS): ")
+                 entrada = input("Ingresa la hora final (HH:MM:SS): \n")
                  try:
                      # Intenta la conversión
                      horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
@@ -603,35 +653,35 @@ elif opt == 4 :
                  except ValueError:
                      # Se ejecuta si el formato ingresado es incorrecto
                      print("Formato incorrecto. Usa HH:MM:SS.")
-            
-            estado = input('Estado :')
-            if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
-                 print("NO EXISTE ESE ESTADO")
-                 exit()
-            else : 
-                 sql = """UPDATE ACTIVIDAD
-                 SET nombre_actividad = %s,
-                 id_espacio = %s,
-                 id_disciplina = %s,
-                 cupo_maximo = %s,
-                 dia_semana = %s,
-                 horario_inicio = %s,
-                 horario_fin = %s,
-                 estado = %s
-                 WHERE id_actividad = %s"""
-                 valores = (
-                      nombreActividad,
-                      id_espacio,
-                      id_disciplina,
-                      cupo,
-                      diaSemana,
-                      horario_inicio,
-                      horario_final,
-                      estado,
-                      editarID
-                 )             
-                 cursor.execute(sql, valores)
-                 cnx.commit()
+            while True :
+                 estado = input('Estado :\n')
+                 if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
+                     print("NO EXISTE ESE ESTADO debe ser : abierta, cerrada, finalizada o cancelada")
+                 else :
+                     break
+            sql = """UPDATE ACTIVIDAD
+                SET nombre_actividad = %s,
+                id_espacio = %s,
+                id_disciplina = %s,
+                cupo_maximo = %s,
+                dia_semana = %s,
+                horario_inicio = %s,
+                horario_fin = %s,
+                estado = %s
+                WHERE id_actividad = %s"""
+            valores = (
+                 nombreActividad,
+                 id_espacio,
+                 id_disciplina,
+                 cupo,
+                 diaSemana,
+                 horario_inicio,
+                 horario_final,
+                 estado,
+                 editarID
+            )             
+            cursor.execute(sql, valores)
+            cnx.commit()
      elif accion == 3 :
         cursor.execute("SELECT * FROM ACTIVIDAD")
         actividades = cursor.fetchall()
@@ -653,7 +703,7 @@ elif opt == 4 :
         cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(borrarID,))
         actividad = cursor.fetchone()
         if actividad is None :
-            print('no existe una actividad con ese ID')
+            print('no existe una actividad con ese ID\n')
             exit()
         else : 
              sql = """DELETE FROM ACTIVIDAD WHERE id_actividad = %s"""
@@ -664,17 +714,28 @@ elif opt == 4 :
         print('error')
         exit()
 elif opt == 5 : 
-     id_actividad = int(input('ID a actividad\n'))
+     while True :
+          try :
+            id_actividad = int(input('ID a actividad\n'))
+            break
+          except ValueError:
+            print("ID inválido. Debe ser un número entero.")
+     
      cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(id_actividad,))
      actividad = cursor.fetchone()
      if actividad is None :
-         print('no existe una actividad con ese ID')
+         print('no existe una actividad con ese ID\n')
          exit()
-     id_estudiante = int(input("ID del estudiante: "))
+     while True :
+          try :
+            id_estudiante = int(input("ID del estudiante: \n"))
+            break
+          except ValueError:
+            print("ID inválido. Debe ser un número entero.")
      cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
      estudiante = cursor.fetchone()
      if estudiante is None :
-         print('no existe un estudiante con ese ID')
+         print('no existe un estudiante con ese ID\n')
          exit()
      inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
 elif opt == 6 :
@@ -682,7 +743,7 @@ elif opt == 6 :
     
 elif opt == 7 : 
      numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
-     ' 3 cantidad Inscriptos por disciplina\n 4 : cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
+     ' 3 cantidad Inscriptos por disciplina\n 4 cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
      '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n 9 Estudiantes no inscriptos en ninguna actividad\n'
      ' 10 Actividades con mas porcentaje de ausencias\n'))
 
