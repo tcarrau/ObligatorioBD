@@ -1,18 +1,31 @@
-from flask import Flask, request, jsonify
-import mysql.connector
+from flask import Flask, request, jsonify, g
+from mysql.connector import pooling
 
 app = Flask(__name__)
 
-cnx = mysql.connector.connect(
-    user='root',
-    password='Locostib2005.',
-    host='127.0.0.1',
-    database='gestion_deportes_universidad'
-)
+DB_CONFIG = {
+    'user': 'root',
+    'password': 'Locostib2005.',
+    'host': '127.0.0.1',
+    'database': 'gestion_deportes_universidad'
+}
+
+pool = pooling.MySQLConnectionPool(pool_name="app_pool", pool_size=5, **DB_CONFIG)
+
+def get_cnx():
+    if 'cnx' not in g:
+        g.cnx = pool.get_connection()
+    return g.cnx
+
+@app.teardown_appcontext
+def close_cnx(error=None):
+    cnx = g.pop('cnx', None)
+    if cnx is not None:
+        cnx.close()
 
 @app.route("/api/estudiantes", methods=["GET"])
 def api_get_estudiantes():
-    cursor = cnx.cursor()
+    cursor = get_cnx().cursor()
     cursor.execute("SELECT id_estudiante, documento, nombre, apellido, email, carrera, facultad FROM ESTUDIANTE")
     rows = cursor.fetchall()
     data = [{'id': r[0], 'documento': r[1], 'nombre': r[2], 'apellido': r[3], 'email': r[4], 'carrera': r[5], 'facultad': r[6]} for r in rows]
@@ -23,6 +36,7 @@ def api_get_estudiantes():
 def api_create_estudiante():
     data = request.json
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute(
             "INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) VALUES (%s, %s, %s, %s, %s, %s)",
@@ -38,6 +52,7 @@ def api_create_estudiante():
 def api_update_estudiante(sid):
     data = request.json
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute(
             "UPDATE ESTUDIANTE SET documento=%s, nombre=%s, apellido=%s, email=%s, carrera=%s, facultad=%s WHERE id_estudiante=%s",
@@ -52,6 +67,7 @@ def api_update_estudiante(sid):
 @app.route("/api/estudiantes/<int:sid>", methods=["DELETE"])
 def api_delete_estudiante(sid):
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute("DELETE FROM ESTUDIANTE WHERE id_estudiante=%s", (sid,))
         cnx.commit()
@@ -62,7 +78,7 @@ def api_delete_estudiante(sid):
 
 @app.route("/estudiantes")
 def estudiantes():
-    cursor = cnx.cursor()
+    cursor = get_cnx().cursor()
     cursor.execute("""
         SELECT id_estudiante,
                nombre,
@@ -95,7 +111,7 @@ def estudiantes():
 
 @app.route("/actividades")
 def actividades():
-    cursor = cnx.cursor()
+    cursor = get_cnx().cursor()
     cursor.execute("""
         SELECT id_actividad,
                nombre_actividad,
@@ -173,7 +189,7 @@ def inscribir():
     if request.method == "POST":
         id_estudiante = int(request.form["id_estudiante"])
         id_actividad = int(request.form["id_actividad"])
-        mensaje = inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
+        mensaje = inscirpcion_estudiante(get_cnx(), id_estudiante, id_actividad)
         return f"""
         <h2>{mensaje}</h2>
         <a href='/'>Volver</a>
@@ -575,53 +591,61 @@ def index():
             });
         }
 
+        let actividadesCache = [];
+
         async function cargarActividades() {
+            const tbody = document.querySelector('#tabActividades tbody');
+            const msgDiv = document.getElementById('msgNuevaAct');
             try {
                 const res = await fetch('/api/actividades');
+                const data = await res.json();
                 if (!res.ok) {
-                    const txt = await res.text();
-                    document.getElementById('msgNuevaAct').innerHTML = '<span class="error">Error cargando actividades: ' + txt + '</span>';
+                    msgDiv.innerHTML = '<span class="error">Error: ' + (data.error || res.statusText) + '</span>';
                     return;
                 }
-                const actividades = await res.json();
-                const tbody = document.querySelector('#tabActividades tbody');
+                actividadesCache = data;
                 tbody.innerHTML = '';
-                actividades.forEach(a => {
-                    const discName = a.disciplina_nombre || '';
-                    const espName = a.espacio_nombre || '';
-                    tbody.innerHTML += `
-                    <tr>
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center">No hay actividades registradas</td></tr>';
+                    return;
+                }
+                data.forEach(a => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
                         <td>${a.id}</td>
                         <td>${a.nombre}</td>
-                        <td>${discName}</td>
-                        <td>${espName}</td>
+                        <td>${a.disciplina_nombre || ''}</td>
+                        <td>${a.espacio_nombre || ''}</td>
                         <td>${a.dia_semana || ''}</td>
                         <td>${a.horario_inicio || ''}</td>
                         <td>${a.horario_fin || ''}</td>
                         <td>${a.cupo}</td>
                         <td>${a.estado}</td>
                         <td>
-                            <button onclick="cargarEditAct(${a.id}, '${(a.nombre||'').replace(/'/g, "\\'")}', ${a.cupo}, '${a.estado}', ${a.disciplina_id || 'null'}, ${a.espacio_id || 'null'}, '${(a.dia_semana||'').replace(/'/g, "\\'")}', '${(a.horario_inicio||'').replace(/'/g, "\\'")}', '${(a.horario_fin||'').replace(/'/g, "\\'")}')">Editar</button>
+                            <button onclick="cargarEditAct(${a.id})">Editar</button>
                             <button class="danger" onclick="borrarActividad(${a.id})">Borrar</button>
-                        </td>
-                    </tr>`;
+                        </td>`;
+                    tbody.appendChild(tr);
                 });
+                msgDiv.innerHTML = '';
             } catch (err) {
-                document.getElementById('msgNuevaAct').innerHTML = '<span class="error">' + err.message + '</span>';
+                msgDiv.innerHTML = '<span class="error">' + err.message + '</span>';
             }
         }
 
-        function cargarEditAct(id, nombre, cupo, estado, discId, espId, dia, horIni, horFin) {
-            document.getElementById('edtActId').value = id;
-            document.getElementById('edtActNombre').value = nombre;
-            document.getElementById('edtActCupo').value = cupo;
-            document.getElementById('edtActEstado').value = estado;
-            if (discId !== null && discId !== undefined) document.getElementById('edtActDisc').value = discId;
-            if (espId !== null && espId !== undefined) document.getElementById('edtActEspacio').value = espId;
-            if (dia) document.getElementById('edtActDia').value = dia;
-            if (horIni) document.getElementById('edtActHorarioIni').value = horIni;
-            if (horFin) document.getElementById('edtActHorarioFin').value = horFin;
-            document.querySelector('html').scrollTop = document.querySelector('#formEditarActividad').offsetTop;
+        function cargarEditAct(id) {
+            const a = actividadesCache.find(x => x.id === id);
+            if (!a) return;
+            document.getElementById('edtActId').value = a.id;
+            document.getElementById('edtActNombre').value = a.nombre;
+            document.getElementById('edtActCupo').value = a.cupo;
+            document.getElementById('edtActEstado').value = a.estado;
+            if (a.disciplina_id != null) document.getElementById('edtActDisc').value = a.disciplina_id;
+            if (a.espacio_id != null) document.getElementById('edtActEspacio').value = a.espacio_id;
+            if (a.dia_semana) document.getElementById('edtActDia').value = a.dia_semana;
+            if (a.horario_inicio) document.getElementById('edtActHorarioIni').value = a.horario_inicio;
+            if (a.horario_fin) document.getElementById('edtActHorarioFin').value = a.horario_fin;
+            document.querySelector('#formEditarActividad').scrollIntoView();
         }
 
         function mostrarDisciplina(id, nombre) {
@@ -776,6 +800,10 @@ def index():
                 alert('Error: ' + result.msg);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarEstudiantes();
+        });
     </script>
 </body>
 </html>'''
@@ -783,38 +811,41 @@ def index():
 
 @app.route("/api/actividades")
 def api_get_actividades():
-    cursor = cnx.cursor()
-    cursor.execute("""
-        SELECT a.id_actividad,
-               a.nombre_actividad,
-               a.cupo_maximo,
-               a.estado,
-               a.id_disciplina,
-               d.nombre_disciplina,
-               a.id_espacio,
-               e.nombre_espacio,
-               a.dia_semana,
-               a.horario_inicio,
-               a.horario_fin
-        FROM ACTIVIDAD a
-        LEFT JOIN DISCIPLINA d ON a.id_disciplina = d.id_disciplina
-        LEFT JOIN ESPACIO_DEPORTIVO e ON a.id_espacio = e.id_espacio
-    """)
-    rows = cursor.fetchall()
-    data = [{
-        'id': r[0],
-        'nombre': r[1],
-        'cupo': r[2],
-        'estado': r[3],
-        'disciplina_id': r[4],
-        'disciplina_nombre': r[5],
-        'espacio_id': r[6],
-        'espacio_nombre': r[7],
-        'dia_semana': r[8],
-        'horario_inicio': str(r[9]) if r[9] else '',
-        'horario_fin': str(r[10]) if r[10] else ''
-    } for r in rows]
-    return jsonify(data)
+    try:
+        cursor = get_cnx().cursor()
+        cursor.execute("""
+            SELECT a.id_actividad,
+                   a.nombre_actividad,
+                   a.cupo_maximo,
+                   a.estado,
+                   a.id_disciplina,
+                   d.nombre_disciplina,
+                   a.id_espacio,
+                   e.nombre_espacio,
+                   a.dia_semana,
+                   a.horario_inicio,
+                   a.horario_fin
+            FROM ACTIVIDAD a
+            LEFT JOIN DISCIPLINA d ON a.id_disciplina = d.id_disciplina
+            LEFT JOIN ESPACIO_DEPORTIVO e ON a.id_espacio = e.id_espacio
+        """)
+        rows = cursor.fetchall()
+        data = [{
+            'id': r[0],
+            'nombre': r[1],
+            'cupo': r[2],
+            'estado': r[3],
+            'disciplina_id': r[4],
+            'disciplina_nombre': r[5],
+            'espacio_id': r[6],
+            'espacio_nombre': r[7],
+            'dia_semana': r[8],
+            'horario_inicio': str(r[9]) if r[9] is not None else '',
+            'horario_fin': str(r[10]) if r[10] is not None else ''
+        } for r in rows]
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/actividades', methods=['POST'])
@@ -822,31 +853,28 @@ def api_create_actividad():
     data = request.json
     id_disc = data.get('id_disciplina')
     id_esp = data.get('id_espacio')
-    
-    # validar disciplina si se envía
+    cnx = get_cnx()
+
     if id_disc is not None and id_disc != '':
         cur = cnx.cursor()
         cur.execute("SELECT 1 FROM DISCIPLINA WHERE id_disciplina=%s", (id_disc,))
         if cur.fetchone() is None:
             return jsonify({'ok': False, 'msg': 'Disciplina no existe'}), 400
-    
-    # validar espacio si se envía
+
     if id_esp is not None and id_esp != '':
         cur = cnx.cursor()
         cur.execute("SELECT 1 FROM ESPACIO_DEPORTIVO WHERE id_espacio=%s", (id_esp,))
         if cur.fetchone() is None:
             return jsonify({'ok': False, 'msg': 'Espacio no existe'}), 400
-    
+
     try:
         cursor = cnx.cursor()
         cursor.execute(
             "INSERT INTO ACTIVIDAD (nombre_actividad, cupo_maximo, estado, id_disciplina, id_espacio, dia_semana, horario_inicio, horario_fin) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)",
-            (data.get('nombre'), data.get('cupo'), data.get('estado'), 
+            (data.get('nombre'), data.get('cupo'), data.get('estado'),
              id_disc if id_disc and id_disc != '' else None,
              id_esp if id_esp and id_esp != '' else None,
-             data.get('dia_semana'),
-             data.get('horario_inicio'),
-             data.get('horario_fin'))
+             data.get('dia_semana'), data.get('horario_inicio'), data.get('horario_fin'))
         )
         cnx.commit()
         return jsonify({'ok': True, 'msg': 'Actividad creada'}), 201
@@ -859,30 +887,28 @@ def api_update_actividad(aid):
     data = request.json
     id_disc = data.get('id_disciplina')
     id_esp = data.get('id_espacio')
-    
+    cnx = get_cnx()
+
     if id_disc is not None and id_disc != '':
         cur = cnx.cursor()
         cur.execute("SELECT 1 FROM DISCIPLINA WHERE id_disciplina=%s", (id_disc,))
         if cur.fetchone() is None:
             return jsonify({'ok': False, 'msg': 'Disciplina no existe'}), 400
-    
+
     if id_esp is not None and id_esp != '':
         cur = cnx.cursor()
         cur.execute("SELECT 1 FROM ESPACIO_DEPORTIVO WHERE id_espacio=%s", (id_esp,))
         if cur.fetchone() is None:
             return jsonify({'ok': False, 'msg': 'Espacio no existe'}), 400
-    
+
     try:
         cursor = cnx.cursor()
         cursor.execute(
             "UPDATE ACTIVIDAD SET nombre_actividad=%s, cupo_maximo=%s, estado=%s, id_disciplina=%s, id_espacio=%s, dia_semana=%s, horario_inicio=%s, horario_fin=%s WHERE id_actividad=%s",
-            (data.get('nombre'), data.get('cupo'), data.get('estado'), 
+            (data.get('nombre'), data.get('cupo'), data.get('estado'),
              id_disc if id_disc and id_disc != '' else None,
              id_esp if id_esp and id_esp != '' else None,
-             data.get('dia_semana'),
-             data.get('horario_inicio'),
-             data.get('horario_fin'),
-             aid)
+             data.get('dia_semana'), data.get('horario_inicio'), data.get('horario_fin'), aid)
         )
         cnx.commit()
         return jsonify({'ok': True, 'msg': 'Actividad actualizada'})
@@ -893,6 +919,7 @@ def api_update_actividad(aid):
 @app.route('/api/actividades/<int:aid>', methods=['DELETE'])
 def api_delete_actividad(aid):
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute("DELETE FROM ACTIVIDAD WHERE id_actividad=%s", (aid,))
         cnx.commit()
@@ -903,7 +930,7 @@ def api_delete_actividad(aid):
 
 @app.route("/api/disciplinas", methods=["GET"])
 def api_get_disciplinas():
-    cursor = cnx.cursor()
+    cursor = get_cnx().cursor()
     cursor.execute("SELECT id_disciplina, nombre_disciplina FROM DISCIPLINA")
     rows = cursor.fetchall()
     data = [{'id': r[0], 'nombre': r[1]} for r in rows]
@@ -911,7 +938,7 @@ def api_get_disciplinas():
 
 @app.route("/api/espacios", methods=["GET"])
 def api_get_espacios():
-    cursor = cnx.cursor()
+    cursor = get_cnx().cursor()
     cursor.execute("SELECT id_espacio, nombre_espacio FROM ESPACIO_DEPORTIVO")
     rows = cursor.fetchall()
     data = [{'id': r[0], 'nombre': r[1]} for r in rows]
@@ -921,6 +948,7 @@ def api_get_espacios():
 def api_create_disciplina():
     data = request.json
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute("INSERT INTO DISCIPLINA (nombre_disciplina) VALUES (%s)", (data.get('nombre'),))
         cnx.commit()
@@ -933,6 +961,7 @@ def api_create_disciplina():
 def api_update_disciplina(did):
     data = request.json
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute("UPDATE DISCIPLINA SET nombre_disciplina=%s WHERE id_disciplina=%s", (data.get('nombre'), did))
         cnx.commit()
@@ -944,6 +973,7 @@ def api_update_disciplina(did):
 @app.route("/api/disciplinas/<int:did>", methods=["DELETE"])
 def api_delete_disciplina(did):
     try:
+        cnx = get_cnx()
         cursor = cnx.cursor()
         cursor.execute("DELETE FROM DISCIPLINA WHERE id_disciplina=%s", (did,))
         cnx.commit()
@@ -953,4 +983,4 @@ def api_delete_disciplina(did):
 
 
 if __name__ == "__main__":
-    app.run(debug=False, port=5000)
+    app.run(host='127.0.0.1', port=8080, debug=True)
