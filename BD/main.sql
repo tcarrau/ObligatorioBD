@@ -3,26 +3,26 @@ USE gestion_deportes_universidad;
 
 CREATE TABLE ESTUDIANTE(
     id_estudiante int AUTO_INCREMENT,
-    documento int,
-    nombre varchar(50),
-    apellido varchar(50),
-    email varchar(50),
-    carrera varchar(50),
-    facultad varchar(50),
+    documento int NOT NULL UNIQUE,
+    nombre varchar(50) NOT NULL,
+    apellido varchar(50) NOT NULL,
+    email varchar(50) NOT NULL UNIQUE,
+    carrera varchar(50) NOT NULL,
+    facultad varchar(50) NOT NULL,
     PRIMARY KEY(id_estudiante)
 );
 
 CREATE TABLE DISCIPLINA(
     id_disciplina int AUTO_INCREMENT,
-    nombre_disciplina varchar(50),
+    nombre_disciplina varchar(50) NOT NULL UNIQUE,
     PRIMARY KEY(id_disciplina)
 );
 
 CREATE TABLE ESPACIO_DEPORTIVO(
     id_espacio int AUTO_INCREMENT,
-    nombre_espacio varchar(50),
-    ubicacion varchar(50),
-    capacidad int,
+    nombre_espacio varchar(50) NOT NULL UNIQUE,
+    ubicacion varchar(50) NOT NULL,
+    capacidad int NOT NULL,
     PRIMARY KEY(id_espacio)
 );
 
@@ -31,13 +31,13 @@ CREATE TABLE ESPACIO_DEPORTIVO(
 
 CREATE TABLE ACTIVIDAD(
     id_actividad int AUTO_INCREMENT,
-    nombre_actividad varchar(50),
-    id_espacio int,
-    id_disciplina int,
-    cupo_maximo int,
-    dia_semana varchar(50),
-    horario_inicio TIME,
-    horario_fin TIME,
+    nombre_actividad varchar(50) NOT NULL UNIQUE,
+    id_espacio int NOT NULL,
+    id_disciplina int NOT NULL,
+    cupo_maximo int NOT NULL,
+    dia_semana varchar(50) NOT NULL,
+    horario_inicio TIME NOT NULL,
+    horario_fin TIME NOT NULL,
     estado ENUM('abierta', 'cerrada', 'finalizada', 'cancelada') NOT NULL DEFAULT 'abierta',
     PRIMARY KEY(id_actividad),
     FOREIGN KEY(id_espacio) REFERENCES ESPACIO_DEPORTIVO(id_espacio),
@@ -46,10 +46,10 @@ CREATE TABLE ACTIVIDAD(
 
 CREATE TABLE INSCRIPCION(
     id_inscripcion int AUTO_INCREMENT,
-    id_estudiante int,
-    id_actividad int,
+    id_estudiante int NOT NULL,
+    id_actividad int NOT NULL,
     fecha_inscripcion DATE,
-    estado_inscripcion ENUM('inscripto', 'lista_espera', 'cancelada'),
+    estado_inscripcion ENUM('inscripto', 'lista_espera', 'cancelada') NOT NULL,
     PRIMARY KEY(id_inscripcion),
     FOREIGN KEY(id_estudiante) REFERENCES ESTUDIANTE(id_estudiante),
     FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad)
@@ -58,10 +58,10 @@ CREATE TABLE INSCRIPCION(
 
 CREATE TABLE ASISTENCIA(
     id_asistencia int AUTO_INCREMENT,
-    id_actividad int,
+    id_actividad int NOT NULL,
     fecha DATE,
     asistio bool,
-    id_estudiante int,
+    id_estudiante int NOT NULL,
 
     PRIMARY KEY(id_asistencia),
     FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad),
