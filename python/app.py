@@ -21,19 +21,11 @@ def input_no_vacio(prompt):
 
 def ElegirUsuario():
     while True:
-        try:
-            rol = input('Ingrese su rol (administrador, estudiante, profesor): ').strip().lower()
-        except EOFError:
-            print('\nError: no se detectó una terminal interactiva.')
-            print('Ejecutá el programa con: docker compose run --rm app')
-            raise
+        rol = input('Ingrese su rol (administrador, estudiante, profesor): ').strip().lower()
         if rol not in HASHED_PASSWORDS:
             print('Rol no válido. Debe ser administrador, estudiante o profesor.')
             continue
-        try:
-            password = input('Ingrese su contraseña: ')
-        except EOFError:
-            raise
+        password = input('Ingrese su contraseña: ')
         if not check_password_hash(HASHED_PASSWORDS[rol], password):
             print('Contraseña incorrecta.')
             continue
@@ -738,34 +730,31 @@ def menu_estudiante(cnx):
 
 
 # --- INICIO ---
-try:
-    print('Bienvenido al sistema de gestión de deportes universitarios\n Eliga un usuario para comenzar (administrador, estudiante, profesor):')
-    while True:
-        cnx, cursor, rol = ElegirUsuario()
-        if cnx is not None:
-            break
-        print('No se pudo conectar. Intente nuevamente.')
+print('Bienvenido al sistema de gestión de deportes universitarios\n Eliga un usuario para comenzar (administrador, estudiante, profesor):')
+while True:
+    cnx, cursor, rol = ElegirUsuario()
+    if cnx is not None:
+        break
+    print('No se pudo conectar. Intente nuevamente.')
 
-    while True:
-        if rol == 'administrador':
-            menu_administrador(cnx, cursor)
-        elif rol == 'profesor':
-            menu_profesor(cnx)
-        elif rol == 'estudiante':
-            menu_estudiante(cnx)
+while True:
+    if rol == 'administrador':
+        menu_administrador(cnx, cursor)
+    elif rol == 'profesor':
+        menu_profesor(cnx)
+    elif rol == 'estudiante':
+        menu_estudiante(cnx)
 
-        quiereContinuar = input('\n¿Desea realizar otra acción? (s/n): ').lower()
-        if quiereContinuar != 's':
-            print('Saliendo del sistema.')
-            break
+    quiereContinuar = input('\n¿Desea realizar otra acción? (s/n): ').lower()
+    if quiereContinuar != 's':
+        print('Saliendo del sistema.')
+        break
 
-        quieresCambiarUsuario = input('¿Desea cambiar de usuario? (s/n): ').lower()
-        if quieresCambiarUsuario == 's':
-            cnx.close()
-            while True:
-                cnx, cursor, rol = ElegirUsuario()
-                if cnx is not None:
-                    break
-                print('No se pudo conectar. Intente nuevamente.')
-except EOFError:
-    print('\nEntrada cerrada. Saliendo del sistema.')
+    quieresCambiarUsuario = input('¿Desea cambiar de usuario? (s/n): ').lower()
+    if quieresCambiarUsuario == 's':
+        cnx.close()
+        while True:
+            cnx, cursor, rol = ElegirUsuario()
+            if cnx is not None:
+                break
+            print('No se pudo conectar. Intente nuevamente.')
