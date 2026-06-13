@@ -9,6 +9,13 @@ HASHED_PASSWORDS = {
     'estudiante':    'scrypt:32768:8:1$nqY3bTGyBZmf6Ve9$407b2d6e284168d3041777a22f1c9cdf777591d34643eff66b2728b8ebea8d2b2785e6c2456d92dea7c6d3baec5b02b10e12e6dc8545abaa6ebf8b218a97b280',
 }
 
+def input_no_vacio(prompt):
+    while True:
+        valor = input(prompt).strip()
+        if valor:
+            return valor
+        print('El campo no puede estar vacío.')
+
 def ElegirUsuario():
     while True:
         rol = input('Ingrese su rol (administrador, estudiante, profesor): ').strip().lower()
@@ -214,9 +221,23 @@ def actividadConMasAusencias(cnx):
 
 def registrarAsistencia(cnx):
     cursor = cnx.cursor()
-    id_estudiante = int(input('ID estudiante: '))
-    id_actividad = int(input('ID actividad: '))
-    
+    while True:
+        try :
+            id_estudiante = int(input('ID estudiante: '))
+            cursor.execute('SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s', (id_estudiante,))
+            if cursor.fetchone() is not None:
+                break
+        except ValueError:
+            print('No existe un estudiante con ese ID o el formato no es correcto, intente nuevamente')
+
+    while True:
+        try :
+            id_actividad = int(input('ID actividad: '))
+            cursor.execute('SELECT * FROM ACTIVIDAD WHERE id_actividad = %s', (id_actividad,))
+            if cursor.fetchone() is not None:
+                break
+        except ValueError:
+            print('No existe una actividad con ese ID o el formato no es correcto, intente nuevamente')
 
     cursor.execute("""
         SELECT *
@@ -289,22 +310,36 @@ def menu_consultas(cnx):
         print('Número de consulta no válido')
 
 
+
+
+
 def menu_administrador(cnx, cursor):
-    print('Seleccione una accion:\n 1 ABM estudiantes\n 2 ABM disciplinas\n 3 ABM Espacios Deportivos\n 4 ABM actividades\n 5 Inscripciones\n 6 Registro de asistencias\n 7 Consultas')
-    opt = int(input())
+    while True:
+        try :
+            print('Seleccione una accion:\n 1 ABM estudiantes\n 2 ABM disciplinas\n 3 ABM Espacios Deportivos\n 4 ABM actividades\n 5 Inscripciones\n 6 Registro de asistencias\n 7 Consultas')
+            opt = int(input())
+            break
+        except ValueError:
+            print('Opcion no valida, debe ser un numero entero')
 
     if opt == 1:
-        print('1: Insertar, 2: Editar, 3: Eliminar')
-        InsEdEl = int(input())
+        while True :
+            try :
+                print('1: Insertar, 2: Editar, 3: Eliminar')
+                InsEdEl = int(input())
+                break
+            except ValueError:  
+                print('Opcion no valida, debe ser un numero entero')
+
         if InsEdEl == 1:
             while True:
                 try:
                     documento = int(input('Documento: '))
-                    nombre = input('Nombre: ')
-                    apellido = input('Apellido: ')
-                    email = input('Email: ')
-                    carrera = input('Carrera: ')
-                    facultad = input('Facultad: ')
+                    nombre = input_no_vacio('Nombre: ')
+                    apellido = input_no_vacio('Apellido: ')
+                    email = input_no_vacio('Email: ')
+                    carrera = input_no_vacio('Carrera: ')
+                    facultad = input_no_vacio('Facultad: ')
                     break
                 except ValueError:
                     print('Alguno de los formatos no es correcto, intentelo de vuelta')
@@ -337,11 +372,11 @@ def menu_administrador(cnx, cursor):
                 while True:
                     try:
                         documento = int(input('Documento: '))
-                        nombre = input('Nombre: ')
-                        apellido = input('Apellido: ')
-                        email = input('Email: ')
-                        carrera = input('Carrera: ')
-                        facultad = input('Facultad: ')
+                        nombre = input_no_vacio('Nombre: ')
+                        apellido = input_no_vacio('Apellido: ')
+                        email = input_no_vacio('Email: ')
+                        carrera = input_no_vacio('Carrera: ')
+                        facultad = input_no_vacio('Facultad: ')
                         break
                     except ValueError:
                         print('Alguna de las entradas no es del formato correcto, intente nuevamente')
@@ -366,11 +401,18 @@ def menu_administrador(cnx, cursor):
                     print('ID debe ser un numero entero')
             cursor.execute('DELETE FROM ESTUDIANTE WHERE id_estudiante = %s', (id_estudiante,))
             cnx.commit()
-
+        else : 
+            print('no se ingreso una opcion valida, vuelva a intentarlo')
     elif opt == 2:
-        accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
+        while True:
+            try:
+                print('1: Insertar, 2: Editar, 3: Eliminar')
+                accion = int(input())
+                break
+            except ValueError:
+                print('Opcion no valida, debe ser un numero entero')
         if accion == 1:
-            NombreDisciplina = input('Nombre de Disciplina: ')
+            NombreDisciplina = input_no_vacio('Nombre de Disciplina: ')
             sql = """INSERT INTO DISCIPLINA (nombre_disciplina) VALUES (%s)"""
             cursor.execute(sql, (NombreDisciplina,))
             cnx.commit()
@@ -384,7 +426,7 @@ def menu_administrador(cnx, cursor):
             while True:
                 try:
                     id_disciplina = int(input('ID de la disciplina a editar: '))
-                    nombreDisciplina = input('Nombre nuevo: ')
+                    nombreDisciplina = input_no_vacio('Nombre nuevo: ')
                     break
                 except ValueError:
                     print('ID debe ser un numero entero')
@@ -406,14 +448,15 @@ def menu_administrador(cnx, cursor):
                     print('ID debe ser un numero entero')
             cursor.execute('DELETE FROM DISCIPLINA WHERE id_disciplina = %s', (id_disciplina,))
             cnx.commit()
-
+        else :
+            print('no se ingreso una opcion valida, vuelva a intentarlo')
     elif opt == 3:
         accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
         if accion == 1:
             while True:
                 try:
-                    nombre_espacio = input('Nombre: ')
-                    ubicacion = input('Ubicacion: ')
+                    nombre_espacio = input_no_vacio('Nombre: ')
+                    ubicacion = input_no_vacio('Ubicacion: ')
                     capacidad = int(input('Capacidad: '))
                     break
                 except ValueError:
@@ -431,8 +474,8 @@ def menu_administrador(cnx, cursor):
             while True:
                 try:
                     editarID = int(input('ID a cambiar: '))
-                    newNombre_espacio = input('Nuevo nombre: ')
-                    newUbicacion = input('Nueva ubicacion: ')
+                    newNombre_espacio = input_no_vacio('Nuevo nombre: ')
+                    newUbicacion = input_no_vacio('Nueva ubicacion: ')
                     newCapacidad = int(input('Nueva capacidad: '))
                     break
                 except ValueError:
@@ -457,9 +500,15 @@ def menu_administrador(cnx, cursor):
             cnx.commit()
 
     elif opt == 4:
-        accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
+        while True :
+            try :
+                accion = int(input('Seleccione una accion: 1 Insertar, 2 Editar, 3 Eliminar\n'))
+                break
+            except ValueError:
+                print('Opcion no valida, debe ser un numero entero')
+
         if accion == 1:
-            nombre_actividad = input('Nombre actividad: ')
+            nombre_actividad = input_no_vacio('Nombre actividad: ')
             while True:
                 try:
                     id_espacio = int(input('Id espacio: '))
@@ -485,7 +534,7 @@ def menu_administrador(cnx, cursor):
             while True:
                 try:
                     cupo = int(input('Cupo Maximo: '))
-                    diaSemana = input('Dia de semana: ')
+                    diaSemana = input_no_vacio('Dia de semana: ')
                     break
                 except ValueError:
                     print('Alguno de los formatos no es correcto, intentelo de vuelta')
@@ -533,7 +582,7 @@ def menu_administrador(cnx, cursor):
                 print('No existe una actividad con ese ID')
                 return
 
-            nombreActividad = input('Nombre Actividad: ')
+            nombreActividad = input_no_vacio('Nombre Actividad: ')
             id_espacio = int(input('Id espacio: '))
             cursor.execute('SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s', (id_espacio,))
             if cursor.fetchone() is None:
@@ -547,7 +596,7 @@ def menu_administrador(cnx, cursor):
                 return
 
             cupo = int(input('Cupo Maximo: '))
-            diaSemana = input('Dia de semana: ')
+            diaSemana = input_no_vacio('Dia de semana: ')
 
             horario_inicio = None
             while True:
@@ -568,7 +617,7 @@ def menu_administrador(cnx, cursor):
                     print('Formato incorrecto. Usa HH:MM:SS.')
 
             while True:
-                estado = input('Estado (abierta/cerrada/finalizada/cancelada): ')
+                estado = input_no_vacio('Estado (abierta/cerrada/finalizada/cancelada): ')
                 if estado not in ('abierta', 'cerrada', 'finalizada', 'cancelada'):
                     print('Estado inválido. Debe ser: abierta, cerrada, finalizada o cancelada')
                 else:
@@ -595,6 +644,8 @@ def menu_administrador(cnx, cursor):
             cursor.execute('DELETE FROM ACTIVIDAD WHERE id_actividad = %s', (borrarID,))
             cnx.commit()
 
+        else :
+            print('no se ingreso una opcion valida, vuelva a intentarlo')
     elif opt == 5:
         while True:
             try:
