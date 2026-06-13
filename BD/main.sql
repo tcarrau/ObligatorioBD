@@ -219,5 +219,6 @@ GRANT SELECT, INSERT ON gestion_deportes_universidad.ASISTENCIA TO 'profesor'@'l
 CREATE USER 'estudiante'@'localhost' IDENTIFIED BY 'Estudiante2025.';
 GRANT SELECT ON gestion_deportes_universidad.ACTIVIDAD TO 'estudiante'@'localhost';
 GRANT SELECT, INSERT ON gestion_deportes_universidad.INSCRIPCION TO 'estudiante'@'localhost';
+GRANT SELECT ON gestion_deportes_universidad.ESTUDIANTE TO 'estudiante'@'localhost';
 
 FLUSH PRIVILEGES;

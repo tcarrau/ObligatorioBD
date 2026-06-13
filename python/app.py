@@ -1,23 +1,28 @@
 import datetime
 from datetime import datetime
 import mysql.connector
+from werkzeug.security import check_password_hash
 
-PASSWORDS = {
-    'administrador': 'Admin2025.',
-    'profesor':      'Profesor2025.',
-    'estudiante':    'Estudiante2025.'
+HASHED_PASSWORDS = {
+    'administrador': 'scrypt:32768:8:1$FejuFIN6rwgvuGgb$53d0ce1163b317887fbe7ba7f4e3947494128a85862719f8aa61120e9dd8627fbd4ccf2c785f576a2f5ef5c8188fae1541988f22ad295dab29c24bca6a2a25a1',
+    'profesor':      'scrypt:32768:8:1$ybaTnl9FBcZRpdf6$afd6fda270f7f4773acdef0240a5e4fcaa73ab0197db2fb7b8bf6b964e990d223e7bae24ee55a0ad0968411f501ba506d3713348b1fcde0c3676f2c548484aad',
+    'estudiante':    'scrypt:32768:8:1$nqY3bTGyBZmf6Ve9$407b2d6e284168d3041777a22f1c9cdf777591d34643eff66b2728b8ebea8d2b2785e6c2456d92dea7c6d3baec5b02b10e12e6dc8545abaa6ebf8b218a97b280',
 }
 
 def ElegirUsuario():
     while True:
         rol = input('Ingrese su rol (administrador, estudiante, profesor): ').strip().lower()
-        if rol not in PASSWORDS:
+        if rol not in HASHED_PASSWORDS:
             print('Rol no válido. Debe ser administrador, estudiante o profesor.')
+            continue
+        password = input('Ingrese su contraseña: ')
+        if not check_password_hash(HASHED_PASSWORDS[rol], password):
+            print('Contraseña incorrecta.')
             continue
         try:
             cnx = mysql.connector.connect(
                 user=rol,
-                password=PASSWORDS[rol],
+                password=password,
                 host='127.0.0.1',
                 database='gestion_deportes_universidad'
             )
@@ -87,7 +92,7 @@ def actividadesCuposDisponibles(cnx):
     actividades = cursor.fetchall()
     print('Actividades disponibles:\n')
     for actividad in actividades:
-        print(f'Actividad: {actividad[1]}\n')
+        print(f'Actividad: {actividad[1]}.  ID: {actividad[0]}\n')
 
 
 def cantInscriptosDisciplina(cnx):
@@ -210,8 +215,7 @@ def registrarAsistencia(cnx):
     cursor = cnx.cursor()
     id_estudiante = int(input('ID estudiante: '))
     id_actividad = int(input('ID actividad: '))
-    fecha = input('Fecha (AAAA-MM-DD): ')
-    asistio = input('¿Asistió? (s/n): ').lower() == 's'
+    
 
     cursor.execute("""
         SELECT *
@@ -221,10 +225,19 @@ def registrarAsistencia(cnx):
           AND estado_inscripcion = 'inscripto'
     """, (id_estudiante, id_actividad))
     inscripcion = cursor.fetchone()
-
     if inscripcion is None:
         print('Error: el estudiante no tiene una inscripción confirmada en esta actividad.')
         return
+    
+    while True:
+        try :
+            fecha = input('Fecha (AAAA-MM-DD): ')
+            datetime.strptime(fecha, '%Y-%m-%d')
+            break
+        except ValueError:
+            print('Formato de fecha incorrecto. Use AAAA-MM-DD.')
+    asistio = input('¿Asistió? (s/n): ').lower() == 's'
+    
 
     cursor.execute("""
         INSERT INTO ASISTENCIA
@@ -626,8 +639,14 @@ def menu_profesor(cnx):
 
 def menu_estudiante(cnx):
     print('Seleccione una accion:\n 1 Inscribirse en una actividad\n 2 Ver actividades con cupos disponibles')
-    opt = int(input())
+    while True:
+        try:
+            opt = int(input())
+            break
+        except ValueError:
+            print('Opción inválida. Debe ser un número entero.')
     if opt == 1:
+        actividadesCuposDisponibles(cnx)
         while True:
             try:
                 id_actividad = int(input('ID actividad: '))
@@ -636,10 +655,17 @@ def menu_estudiante(cnx):
                 print('ID inválido. Debe ser un número entero.')
         while True:
             try:
-                id_estudiante = int(input('ID del estudiante: '))
+                documento = int(input('Documento del estudiante: '))
                 break
             except ValueError:
-                print('ID inválido. Debe ser un número entero.')
+                print('Documento inválido. Debe ser un número entero.')
+        cursor = cnx.cursor()
+        cursor.execute('SELECT id_estudiante FROM ESTUDIANTE WHERE documento = %s', (documento,))
+        resultado = cursor.fetchone()
+        if resultado is None:
+            print('No existe un estudiante con ese documento')
+            return
+        id_estudiante = resultado[0]
         inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
     elif opt == 2:
         actividadesCuposDisponibles(cnx)
@@ -648,34 +674,31 @@ def menu_estudiante(cnx):
 
 
 # --- INICIO ---
-
-while True :
-    print('Bienvenido al sistema de gestión de deportes universitarios\n Eliga usuario para continuar (administrador, estudiante, profesor)')
+print('Bienvenido al sistema de gestión de deportes universitarios\n Eliga un usuario para comenzar (administrador, estudiante, profesor):')
+while True:
     cnx, cursor, rol = ElegirUsuario()
     if cnx is not None:
         break
-    else:
-        print('No se pudo conectar. Intente nuevamente.(administrador, estudiante, profesor)')
-        
+    print('No se pudo conectar. Intente nuevamente.')
 
-if rol == 'administrador':
-    while True:
+while True:
+    if rol == 'administrador':
         menu_administrador(cnx, cursor)
-        quiereContinuar = input('¿Desea realizar otra acción? (s/n): ').lower()
-        if quiereContinuar != 's':
-            print('Saliendo del sistema')
-            break
-        quieresCambiarUsuario = input('¿Desea cambiar de usuario? (s/n): ').lower()
-        if quieresCambiarUsuario == 's':
-            cnx.close()
-            while True:
-                cnx, cursor, rol = ElegirUsuario()
-                if cnx is not None:
-                    break
-                else:
-                    print('No se pudo conectar. Intente nuevamente.(administrador, estudiante, profesor)')
-            
-elif rol == 'profesor':
-    menu_profesor(cnx)
-elif rol == 'estudiante':
-    menu_estudiante(cnx)
+    elif rol == 'profesor':
+        menu_profesor(cnx)
+    elif rol == 'estudiante':
+        menu_estudiante(cnx)
+
+    quiereContinuar = input('\n¿Desea realizar otra acción? (s/n): ').lower()
+    if quiereContinuar != 's':
+        print('Saliendo del sistema.')
+        break
+
+    quieresCambiarUsuario = input('¿Desea cambiar de usuario? (s/n): ').lower()
+    if quieresCambiarUsuario == 's':
+        cnx.close()
+        while True:
+            cnx, cursor, rol = ElegirUsuario()
+            if cnx is not None:
+                break
+            print('No se pudo conectar. Intente nuevamente.')
