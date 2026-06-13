@@ -249,6 +249,11 @@ def index():
         <button class="tab-btn" onclick="showTab('inscripciones')">Inscripciones</button>
     </div>
 
+    
+
+
+
+
     <!-- PESTAÑA ESTUDIANTES -->
     <div id="estudiantes" class="tab-content active">
         <h2>Gestión de Estudiantes</h2>
@@ -296,6 +301,10 @@ def index():
         </form>
         <div id="msgEditEst"></div>
     </div>
+
+    
+
+
 
     <!-- PESTAÑA ACTIVIDADES -->
     <div id="actividades" class="tab-content">
@@ -387,6 +396,10 @@ def index():
         <div id="msgEditAct"></div>
     </div>
 
+    
+
+
+
     <!-- PESTAÑA DISCIPLINAS -->
     <div id="disciplinas" class="tab-content">
         <h2>Disciplinas Deportivas</h2>
@@ -419,6 +432,10 @@ def index():
         </form>
         <div id="msgEditDisc"></div>
     </div>
+
+    
+
+
 
     <!-- PESTAÑA ESPACIOS DEPORTIVOS -->
     <div id="espacios" class="tab-content">
@@ -459,6 +476,9 @@ def index():
         <div id="msgEditEsp"></div>
     </div>
 
+    
+
+    
     <!-- PESTAÑA INSCRIPCIONES -->
     <div id="inscripciones" class="tab-content">
         <h2>Inscribir Estudiante</h2>

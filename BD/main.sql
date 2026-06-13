@@ -188,4 +188,36 @@ INSERT INTO ASISTENCIA (id_actividad, fecha, asistio, id_estudiante) VALUES
 -- Yoga Relax (actividad 8)
 (8, '2026-04-07', TRUE, 5),
 (8, '2026-04-07', TRUE, 11),
-(8, '2026-04-07', FALSE, 2)
+(8, '2026-04-07', FALSE, 2);
+
+-- =========================
+-- USUARIOS Y PERMISOS
+-- =========================
+
+DROP USER IF EXISTS 'administrador'@'localhost';
+DROP USER IF EXISTS 'profesor'@'localhost';
+DROP USER IF EXISTS 'estudiante'@'localhost';
+
+-- Administrador: acceso total a toda la base de datos
+CREATE USER 'administrador'@'localhost' IDENTIFIED BY 'Admin2025.';
+GRANT ALL PRIVILEGES ON gestion_deportes_universidad.* TO 'administrador'@'localhost';
+
+-- Profesor: puede registrar asistencia y ejecutar todas las consultas del sistema
+-- registrarAsistencia -> SELECT en INSCRIPCION, INSERT en ASISTENCIA
+-- Consultas (app.py opt 7) -> SELECT en todas las tablas
+CREATE USER 'profesor'@'localhost' IDENTIFIED BY 'Profesor2025.';
+GRANT SELECT ON gestion_deportes_universidad.ESTUDIANTE TO 'profesor'@'localhost';
+GRANT SELECT ON gestion_deportes_universidad.DISCIPLINA TO 'profesor'@'localhost';
+GRANT SELECT ON gestion_deportes_universidad.ESPACIO_DEPORTIVO TO 'profesor'@'localhost';
+GRANT SELECT ON gestion_deportes_universidad.ACTIVIDAD TO 'profesor'@'localhost';
+GRANT SELECT ON gestion_deportes_universidad.INSCRIPCION TO 'profesor'@'localhost';
+GRANT SELECT, INSERT ON gestion_deportes_universidad.ASISTENCIA TO 'profesor'@'localhost';
+
+-- Estudiante: puede inscribirse en actividades y ver actividades con cupos disponibles
+-- inscripcion_estudiante -> SELECT en ACTIVIDAD, SELECT e INSERT en INSCRIPCION
+-- actividadesCuposDisponibles -> SELECT en ACTIVIDAD e INSCRIPCION
+CREATE USER 'estudiante'@'localhost' IDENTIFIED BY 'Estudiante2025.';
+GRANT SELECT ON gestion_deportes_universidad.ACTIVIDAD TO 'estudiante'@'localhost';
+GRANT SELECT, INSERT ON gestion_deportes_universidad.INSCRIPCION TO 'estudiante'@'localhost';
+
+FLUSH PRIVILEGES;

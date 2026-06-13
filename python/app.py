@@ -1,69 +1,83 @@
 import datetime
 from datetime import datetime
 import mysql.connector
-cnx = mysql.connector.connect(user='root', password='Locostib2005.', host='127.0.0.1', database='gestion_deportes_universidad')
-cursor =cnx.cursor()
 
-def inscirpcion_estudiante(cnx, id_estudiante, id_actividad) :
+PASSWORDS = {
+    'administrador': 'Admin2025.',
+    'profesor':      'Profesor2025.',
+    'estudiante':    'Estudiante2025.'
+}
+
+def ElegirUsuario():
+    while True:
+        rol = input('Ingrese su rol (administrador, estudiante, profesor): ').strip().lower()
+        if rol not in PASSWORDS:
+            print('Rol no válido. Debe ser administrador, estudiante o profesor.')
+            continue
+        try:
+            cnx = mysql.connector.connect(
+                user=rol,
+                password=PASSWORDS[rol],
+                host='127.0.0.1',
+                database='gestion_deportes_universidad'
+            )
+            cursor = cnx.cursor()
+            print(f'Conectado como {rol}.\n')
+            return cnx, cursor, rol
+        except mysql.connector.Error as e:
+            print(f'Error de conexión: {e}')
+            return None, None, None
+
+
+def inscirpcion_estudiante(cnx, id_estudiante, id_actividad):
     cursor = cnx.cursor(dictionary=True)
     cursor.execute(("""SELECT cupo_maximo, estado FROM ACTIVIDAD
                    WHERE id_actividad = %s"""), (id_actividad,))
     actividad = cursor.fetchone()
 
+    if actividad is None or actividad['estado'] != 'abierta':
+        print('Error: la actividad no existe o no está abierta.')
+        return
+    else:
+        cursor.execute(("""SELECT * FROM INSCRIPCION
+                       WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion NOT IN ('cancelada')"""), (id_estudiante, id_actividad))
+        duplicado = cursor.fetchone()
+        if duplicado is None:
+            cursor.execute("""SELECT COUNT(*) as cupo_actual FROM INSCRIPCION
+            WHERE id_actividad = %s AND estado_inscripcion = 'inscripto'
+            """, (id_actividad,))
+            resultado = cursor.fetchone()
+            cupo_actual = resultado['cupo_actual']
+            if cupo_actual < actividad['cupo_maximo']:
+                estado_inscripcion = 'inscripto'
+                print('INSCRIPCION POSIBLE')
+            else:
+                estado_inscripcion = 'lista_espera'
+                print('LISTA DE ESPERA')
 
-    if actividad is None or actividad['estado'] != 'abierta' : 
-         print('error')
-         return
-    else : 
-         cursor.execute(("""SELECT * FROM INSCRIPCION
-                        WHERE id_estudiante = %s AND id_actividad = %s AND estado_inscripcion NOT IN ('cancelada')"""), (id_estudiante, id_actividad))
-         duplicado = cursor.fetchone()
-         if duplicado is None :
-              
-                cursor.execute("""SELECT COUNT(*) as cupo_actual FROM INSCRIPCION
-                WHERE id_actividad = %s AND estado_inscripcion = 'inscripto'
-                """, (id_actividad,))
-                
-                resultado = cursor.fetchone()
-                cupo_actual = resultado['cupo_actual']
-                if cupo_actual < actividad['cupo_maximo']:  
-
-                     estado_inscripcion = 'inscripto'
-                     print('INSCRIPCION POSIBLE')
-                else : 
-                     estado_inscripcion = 'lista_espera'
-                     print('LISTA DE ESPERA')
-
-                sql = """INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion)
-                            VALUES (%s, %s, CURDATE(), %s)"""
-                valores = (
-                          id_estudiante,
-                          id_actividad,
-                          estado_inscripcion
-                     )
-
-                
-                cursor.execute(sql, valores)
-                cnx.commit()
-                print('Inscripcion realizada correctamente')
-         else : 
-              print('esta duplicado')
-              return
-    return  
-    
-
-def actividadMaxInscriptos(cnx) :
-     cursor = cnx.cursor()
-     cursor.execute("""SELECT a.id_actividad, a.nombre_actividad, COUNT(*) as cantidadInscriptos FROM ACTIVIDAD a
-                    JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
-                    GROUP BY a.id_actividad, a.nombre_actividad
-                    ORDER BY cantidadInscriptos desc
-                    LIMIT 1;""")
-     actividad = cursor.fetchone()
-     print('la actividad con mayor inscripciones es:  %s\n con %s inscriptos' % (actividad[1], actividad[2]))
+            sql = """INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion)
+                        VALUES (%s, %s, CURDATE(), %s)"""
+            valores = (id_estudiante, id_actividad, estado_inscripcion)
+            cursor.execute(sql, valores)
+            cnx.commit()
+            print('Inscripcion realizada correctamente')
+        else:
+            print('Ya existe una inscripción activa para ese estudiante en esa actividad.')
+            return
 
 
-def actividadesCuposDisponibles(cnx) :
+def actividadMaxInscriptos(cnx):
+    cursor = cnx.cursor()
+    cursor.execute("""SELECT a.id_actividad, a.nombre_actividad, COUNT(*) as cantidadInscriptos FROM ACTIVIDAD a
+                   JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
+                   GROUP BY a.id_actividad, a.nombre_actividad
+                   ORDER BY cantidadInscriptos desc
+                   LIMIT 1;""")
+    actividad = cursor.fetchone()
+    print('La actividad con mayor inscripciones es: %s\n con %s inscriptos' % (actividad[1], actividad[2]))
+
+
+def actividadesCuposDisponibles(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT a.id_actividad, a.nombre_actividad, COUNT(*) as cantidadInscriptos
                    FROM ACTIVIDAD a
@@ -71,51 +85,50 @@ def actividadesCuposDisponibles(cnx) :
                    GROUP BY a.id_actividad, a.nombre_actividad, a.cupo_maximo
                    HAVING a.cupo_maximo > COUNT(*);""")
     actividades = cursor.fetchall()
-    print('actividades disponibles\n')
-    for actividad in actividades :
-         print(f'Actividad : {actividad[1]}\n')
+    print('Actividades disponibles:\n')
+    for actividad in actividades:
+        print(f'Actividad: {actividad[1]}\n')
 
-def cantInscriptosDisciplina(cnx) :
+
+def cantInscriptosDisciplina(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT d.nombre_disciplina, COUNT(*) FROM DISCIPLINA d
                    LEFT JOIN ACTIVIDAD a on d.id_disciplina = a.id_disciplina
                    LEFT JOIN INSCRIPCION i on a.id_actividad = i.id_actividad
                    GROUP BY d.nombre_disciplina""")
-    
     disciplinas = cursor.fetchall()
-    for disciplina in disciplinas :
-         print(f'Disciplina : {disciplina[0]}, Cantidad inscriptos : {disciplina[1]}')
-        
-def cantInscriptosFacultad(cnx) :
+    for disciplina in disciplinas:
+        print(f'Disciplina: {disciplina[0]}, Cantidad inscriptos: {disciplina[1]}')
+
+
+def cantInscriptosFacultad(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT e.facultad, COUNT(*) as cantInscriptos FROM ESTUDIANTE e
                    JOIN INSCRIPCION i on e.id_estudiante = i.id_estudiante
                    GROUP BY e.facultad;""")
-    
     facultades = cursor.fetchall()
-    for facultad in facultades :
-         print(f'Facultad : {facultad[0]}, cantidad inscriptos : {facultad[1]}')
+    for facultad in facultades:
+        print(f'Facultad: {facultad[0]}, cantidad inscriptos: {facultad[1]}')
 
 
-def porcentajeOcupacionActividad(cnx) :
+def porcentajeOcupacionActividad(cnx):
     cursor = cnx.cursor()
-    id_actividad = int(input('ID de la actividad'))
-
+    id_actividad = int(input('ID de la actividad: '))
     cursor.execute("""SELECT a.id_actividad, a.cupo_maximo, COUNT(*) FROM ACTIVIDAD a
                    JOIN INSCRIPCION i on a.id_actividad = i.id_actividad
                    WHERE a.id_actividad = %s AND i.estado_inscripcion = 'inscripto'
                    GROUP BY a.id_actividad, a.cupo_maximo""", (id_actividad,))
-    
     actividad = cursor.fetchone()
-    if actividad is None :
-         print('ocupada al 0 %')
-         return
-    porcentaje = (actividad[2]/actividad[1]) * 100
+    if actividad is None:
+        print('Ocupada al 0%')
+        return None
+    porcentaje = (actividad[2] / actividad[1]) * 100
     return porcentaje
 
-def porcentajeAsistenciaActividad(cnx) :
+
+def porcentajeAsistenciaActividad(cnx):
     cursor = cnx.cursor()
-    id_actividad = int(input('ID actividad\n'))
+    id_actividad = int(input('ID actividad: '))
     cursor.execute("""SELECT id_actividad, COUNT(*) FROM ASISTENCIA
                    WHERE id_actividad = %s AND asistio = True""", (id_actividad,))
     asistio = cursor.fetchone()
@@ -125,61 +138,60 @@ def porcentajeAsistenciaActividad(cnx) :
                    WHERE id_actividad = %s""", (id_actividad,))
     total = cursor.fetchone()
     clasesTotales = total[1]
-    if clasesTotales == 0 :
-         print('No hubo clases de esa actividad')
-         exit()
-    if total is None or asistio is None :
-         print('nadie asistio a esa actividad')
-         exit()
-    porcentaje = (asistencias/clasesTotales) * 100
-    print(f'Porcentaje de asistencias es : {porcentaje} %')
-    return
+    if clasesTotales == 0:
+        print('No hubo clases de esa actividad')
+        return
+    if total is None or asistio is None:
+        print('Nadie asistio a esa actividad')
+        return
+    porcentaje = (asistencias / clasesTotales) * 100
+    print(f'Porcentaje de asistencias es: {porcentaje}%')
 
-def estudiantesConInasistencias(cnx) :
+
+def estudiantesConInasistencias(cnx):
     cursor = cnx.cursor()
-
     cursor.execute("""SELECT e.nombre, e.documento, COUNT(*) as inasistencias FROM ASISTENCIA a
                    JOIN ESTUDIANTE e on e.id_estudiante = a.id_estudiante
                    WHERE asistio = FALSE
                    GROUP BY e.nombre, e.documento
                    HAVING inasistencias > 2""")
-    
     estudiantes = cursor.fetchall()
-    if estudiantes is None :
+    if not estudiantes:
         print('No hay estudiantes con 3 o mas inasistencias')
-        exit() 
-    for estudiante in estudiantes :
-         print(f'nombre : {estudiante[0]} documento : {estudiante[1]}')
+        return
+    for estudiante in estudiantes:
+        print(f'Nombre: {estudiante[0]}, Documento: {estudiante[1]}')
 
-def actividadesListaEspera(cnx) :
+
+def actividadesListaEspera(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT a.nombre_actividad FROM ACTIVIDAD a
                    JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
                    WHERE i.estado_inscripcion = 'lista_espera'""")
-    
     actividades = cursor.fetchall()
-    if actividades is None :
-        print("No hay actividades con lista de espera")
-        exit()
-    print('Las actividades con lista de espera son :')
-    for actividad in actividades :
-         print(f"nombre : {actividad[0]}")
+    if not actividades:
+        print('No hay actividades con lista de espera')
+        return
+    print('Las actividades con lista de espera son:')
+    for actividad in actividades:
+        print(f'Nombre: {actividad[0]}')
 
-def estudiantesNoInscriptos(cnx) :
+
+def estudiantesNoInscriptos(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT e.nombre, e.documento FROM ESTUDIANTE e
                    LEFT JOIN INSCRIPCION i on e.id_estudiante = i.id_estudiante
                    WHERE i.id_estudiante IS NULL""")
-    
     estudiantes = cursor.fetchall()
-    if estudiantes is None :
-        print("No hay estudiantes sin inscripciones")
-        exit()
-    print('Los estudiantes sin inscripciones son :')
-    for estudiante in estudiantes :
-         print(f"nombre : {estudiante[0]}, documento : {estudiante[1]}")
+    if not estudiantes:
+        print('No hay estudiantes sin inscripciones')
+        return
+    print('Los estudiantes sin inscripciones son:')
+    for estudiante in estudiantes:
+        print(f'Nombre: {estudiante[0]}, Documento: {estudiante[1]}')
 
-def actividadConMasAusencias(cnx) :
+
+def actividadConMasAusencias(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT a.nombre_actividad, COUNT(*) as ausencias FROM ACTIVIDAD a
                    JOIN ASISTENCIA asi on asi.id_actividad = a.id_actividad
@@ -187,21 +199,19 @@ def actividadConMasAusencias(cnx) :
                    GROUP BY a.nombre_actividad
                    ORDER BY ausencias DESC
                    LIMIT 1""")
-    
     actividad = cursor.fetchone()
-    if actividad is None :
-        print("No hay actividades con ausencias")
-        exit()
-    print(f'La actividad con mas ausencias es : {actividad[0]} con {actividad[1]} ausencias')
+    if actividad is None:
+        print('No hay actividades con ausencias')
+        return
+    print(f'La actividad con mas ausencias es: {actividad[0]} con {actividad[1]} ausencias')
 
-def registrarAsistencia(cnx) :
 
+def registrarAsistencia(cnx):
     cursor = cnx.cursor()
-    id_estudiante = int(input("ID estudiante: "))
-    id_actividad = int(input("ID actividad: "))
-    fecha = input("Fecha (AAAA-MM-DD): ")
-    asistio = input("¿Asistió? (s/n): ").lower() == "s"
-    
+    id_estudiante = int(input('ID estudiante: '))
+    id_actividad = int(input('ID actividad: '))
+    fecha = input('Fecha (AAAA-MM-DD): ')
+    asistio = input('¿Asistió? (s/n): ').lower() == 's'
 
     cursor.execute("""
         SELECT *
@@ -213,7 +223,7 @@ def registrarAsistencia(cnx) :
     inscripcion = cursor.fetchone()
 
     if inscripcion is None:
-        print("Error: el estudiante no tiene una inscripción confirmada en esta actividad.")
+        print('Error: el estudiante no tiene una inscripción confirmada en esta actividad.')
         return
 
     cursor.execute("""
@@ -222,571 +232,450 @@ def registrarAsistencia(cnx) :
         VALUES (%s, %s, %s, %s)
     """, (id_actividad, fecha, asistio, id_estudiante))
     cnx.commit()
+    print('Asistencia registrada correctamente.')
 
-    print("Asistencia registrada correctamente.")
+
+def menu_consultas(cnx):
+    numeroConsulta = int(input(
+        'Número de consulta:\n'
+        ' 1  Actividad con max inscriptos\n'
+        ' 2  Actividades con cupos disponibles\n'
+        ' 3  Cantidad inscriptos por disciplina\n'
+        ' 4  Cantidad inscriptos por facultad\n'
+        ' 5  Porcentaje ocupación por actividad\n'
+        ' 6  Porcentaje de asistencia por actividad\n'
+        ' 7  Estudiantes con 3 o mas inasistencias\n'
+        ' 8  Actividades con lista de espera\n'
+        ' 9  Estudiantes no inscriptos en ninguna actividad\n'
+        ' 10 Actividad con mas porcentaje de ausencias\n'
+    ))
+    if numeroConsulta == 1:
+        actividadMaxInscriptos(cnx)
+    elif numeroConsulta == 2:
+        actividadesCuposDisponibles(cnx)
+    elif numeroConsulta == 3:
+        cantInscriptosDisciplina(cnx)
+    elif numeroConsulta == 4:
+        cantInscriptosFacultad(cnx)
+    elif numeroConsulta == 5:
+        porciento = porcentajeOcupacionActividad(cnx)
+        if porciento is not None:
+            print(f'Ocupada al: {porciento}%')
+    elif numeroConsulta == 6:
+        porcentajeAsistenciaActividad(cnx)
+    elif numeroConsulta == 7:
+        estudiantesConInasistencias(cnx)
+    elif numeroConsulta == 8:
+        actividadesListaEspera(cnx)
+    elif numeroConsulta == 9:
+        estudiantesNoInscriptos(cnx)
+    elif numeroConsulta == 10:
+        actividadConMasAusencias(cnx)
+    else : 
+        print('Número de consulta no válido')
 
 
-print('Seleccione una accion : \n 1 ABM estudiantes\n 2 ABM disciplinas\n 3 ABM Espacios Derpotivos\n 4 ABM actividades\n 5 Inscripciones\n 6 registro de asistencias\n 7 consultas')
-opt = int(input())
-#ESTUDIANTES
+def menu_administrador(cnx, cursor):
+    print('Seleccione una accion:\n 1 ABM estudiantes\n 2 ABM disciplinas\n 3 ABM Espacios Deportivos\n 4 ABM actividades\n 5 Inscripciones\n 6 Registro de asistencias\n 7 Consultas')
+    opt = int(input())
 
-if opt == 1 : #agregar
-    print('1: insertar, 2 : editar, 3: eliminar')
-    InsEdEl = int(input())
-    if InsEdEl == 1 :
-        while True :
-             try :
-                documento = int(input("Documento: \n"))
+    if opt == 1:
+        print('1: Insertar, 2: Editar, 3: Eliminar')
+        InsEdEl = int(input())
+        if InsEdEl == 1:
+            while True:
+                try:
+                    documento = int(input('Documento: '))
+                    nombre = input('Nombre: ')
+                    apellido = input('Apellido: ')
+                    email = input('Email: ')
+                    carrera = input('Carrera: ')
+                    facultad = input('Facultad: ')
+                    break
+                except ValueError:
+                    print('Alguno de los formatos no es correcto, intentelo de vuelta')
 
-                nombre = input("Nombre: \n")
+            sql = """INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad)
+                     VALUES (%s, %s, %s, %s, %s, %s)"""
+            valores = (documento, nombre, apellido, email, carrera, facultad)
+            cursor.execute(sql, valores)
+            cnx.commit()
+            print('Estudiante agregado correctamente.')
 
-                apellido = input("Apellido: \n")
-
-                email = input("Email: \n")
-
-                carrera = input("Carrera: \n")
-
-                facultad = input("Facultad: \n")
-                break
-             except ValueError :
-                print('Alguno de los formatos no es correcto intentelo de vuelta')
-
-        sql = """INSERT INTO ESTUDIANTE
-
-        (documento, nombre, apellido, email, carrera, facultad)
-
-        VALUES (%s, %s, %s, %s, %s, %s)"""
-    
-        valores = (
-
-        documento,
-
-        nombre,
-
-        apellido,
-
-        email,
-
-        carrera,
-
-        facultad
-        )
-
-        cursor.execute(sql, valores)
-
-        cnx.commit()
-
-        print("Estudiante agregado correctamente.")
-    elif InsEdEl == 2 : #editar
-        cursor.execute("SELECT * FROM ESTUDIANTE")
-        estudiantes = cursor.fetchall()
-        #(44321098, 'Agustín', 'Silva', 'agustin.silva@fing.edu.uy', 'Ingeniería Mecánica', 'FING'),
-        print("\n=== ESTUDIANTES ===")
-
-        for estudiante in estudiantes:
-                print(
-                f"ID: {estudiante[0]} | "
-                f"Nombre: {estudiante[1]} {estudiante[2]} | "
-                f"Documento: {estudiante[3]}"
-            )
-        while True :
-                try :
-                     id_estudiante = int(input("ID del estudiante:\n "))
-                     break
-                except ValueError :
+        elif InsEdEl == 2:
+            cursor.execute('SELECT * FROM ESTUDIANTE')
+            estudiantes = cursor.fetchall()
+            print('\n=== ESTUDIANTES ===')
+            for estudiante in estudiantes:
+                print(f'ID: {estudiante[0]} | Nombre: {estudiante[1]} {estudiante[2]} | Documento: {estudiante[3]}')
+            while True:
+                try:
+                    id_estudiante = int(input('ID del estudiante: '))
+                    break
+                except ValueError:
                     print('ID debe ser un numero entero')
 
-        cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
-        estudiante = cursor.fetchone()
-        if estudiante is None :
-            print('no existe un estudiante con ese ID')
-        else :
-            while True :
-                try :
-                     documento = int(input("Documento:\n "))
-                     nombre = input("Nombre:\n ")
-                     apellido = input("Apellido:\n ")
-                     email = input("Email:\n ")
-                     carrera = input("Carrera:\n ")
-                     facultad = input("Facultad:\n ")
-                     break
-                except ValueError :
-                    print('Alguna de las entradas no es del formato correcto, intente nuevamente')
+            cursor.execute('SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s', (id_estudiante,))
+            estudiante = cursor.fetchone()
+            if estudiante is None:
+                print('No existe un estudiante con ese ID')
+            else:
+                while True:
+                    try:
+                        documento = int(input('Documento: '))
+                        nombre = input('Nombre: ')
+                        apellido = input('Apellido: ')
+                        email = input('Email: ')
+                        carrera = input('Carrera: ')
+                        facultad = input('Facultad: ')
+                        break
+                    except ValueError:
+                        print('Alguna de las entradas no es del formato correcto, intente nuevamente')
 
-            sql = """
-            UPDATE ESTUDIANTE
-            SET documento = %s,
-                nombre = %s,
-                apellido = %s,
-                email = %s,
-                carrera = %s,
-                facultad = %s
-            WHERE id_estudiante = %s
-            """
+                sql = """UPDATE ESTUDIANTE
+                         SET documento = %s, nombre = %s, apellido = %s, email = %s, carrera = %s, facultad = %s
+                         WHERE id_estudiante = %s"""
+                cursor.execute(sql, (documento, nombre, apellido, email, carrera, facultad, id_estudiante))
+                cnx.commit()
 
-            cursor.execute(sql, (
-                documento,
-                nombre,
-                apellido,
-                email,
-                carrera,
-                facultad,
-                id_estudiante
-            ))
-            cnx.commit()
-    elif InsEdEl == 3 :
-        cursor.execute("SELECT * FROM ESTUDIANTE")
-        estudiantes = cursor.fetchall()
-        print("\n=== ESTUDIANTES ===")
-
-        for estudiante in estudiantes:
-                print(
-                f"ID: {estudiante[0]} | "
-                f"Nombre: {estudiante[1]} {estudiante[2]} | "
-                f"Documento: {estudiante[3]}"
-            )
-        while True : 
-             try : 
-                  id_estudiante = int(input("ID del estudiante a eliminar:\n "))
-                  break
-             except ValueError : 
-                  print('ID debe ser un numero entero')    
-
-        cursor.execute("DELETE FROM ESTUDIANTE WHERE id_estudiante = %s", (id_estudiante,))
-        cnx.commit()
-elif opt == 2 : 
-     accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
-    
-     if accion == 1 :
-            NombreDisciplina = input('Nombre de Disciplina : \n')
-            sql = ("""INSERT INTO DISCIPLINA 
-                         (nombre_disciplina)
-                          VALUES (%s)""")
-            valores = (NombreDisciplina,)
-            cursor.execute(sql, valores)
-            cnx.commit()
-    
-     elif accion == 2 : 
-        cursor.execute("SELECT * FROM DISCIPLINA")
-        disciplinas = cursor.fetchall()
-
-        print("\n=== DISCIPLINAS ===")
-        for disciplina in disciplinas:
-                print(
-                f"ID: {disciplina[0]} | "
-                f"Nombre: {disciplina[1]} | "
-            )
-        while True : 
-             try : 
-                  id_disciplina = int(input('ID de la disciplina a editar :\n'))
-                  nombreDisciplina = input('nombre nuevo : \n')
-                  break
-             except ValueError : 
-                  print('ID debe ser un numero entero')
-        
-        sql = """UPDATE DISCIPLINA
-                SET nombre_disciplina = %s
-                WHERE id_disciplina = %s"""    
-        valores = (nombreDisciplina, id_disciplina)   
-        cursor.execute(sql, valores)
-        cnx.commit()
-   
-     elif  accion == 3 :
-        cursor.execute("SELECT * FROM DISCIPLINA")
-        disciplinas = cursor.fetchall()
-        print("\n=== DISCIPLINAS ===")
-        for disciplina in disciplinas:
-                print(
-                f"ID: {disciplina[0]} | "
-                f"Nombre: {disciplina[1]} | "
-            )
-        while True : 
-             try : 
-                  id_disciplina = int(input('ID de la disciplina a eliminar :\n'))
-                  break
-             except ValueError : 
-                  print('ID debe ser un numero entero')
-
-        sql = """DELETE FROM DISCIPLINA WHERE id_disciplina = %s"""
-        valores = (id_disciplina,)
-        cursor.execute(sql, valores)
-        cnx.commit()
-        
-elif opt == 3 :
-     accion = int(input('1 : Insertar, 2: Editar, 3 : Eliminar\n'))
-     if accion == 1 :
-          sql = """INSERT INTO ESPACIO_DEPORTIVO 
-          (nombre_espacio, ubicacion, capacidad)
-          VALUES (%s, %s, %s)"""
-          
-          while True :
-                try :
-                    nombre_espacio = input('Nombre : \n')
-                    ubicacion = input('Ubicacion : \n')
-                    capacidad = int(input('Capacidad : \n'))
+        elif InsEdEl == 3:
+            cursor.execute('SELECT * FROM ESTUDIANTE')
+            estudiantes = cursor.fetchall()
+            print('\n=== ESTUDIANTES ===')
+            for estudiante in estudiantes:
+                print(f'ID: {estudiante[0]} | Nombre: {estudiante[1]} {estudiante[2]} | Documento: {estudiante[3]}')
+            while True:
+                try:
+                    id_estudiante = int(input('ID del estudiante a eliminar: '))
                     break
-                except ValueError :
-                    print('Alguno de los formatos no es correcto intentelo de vuelta')
-          
-          valores = (
-               nombre_espacio,
-               ubicacion,
-               capacidad
-          )
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            cursor.execute('DELETE FROM ESTUDIANTE WHERE id_estudiante = %s', (id_estudiante,))
+            cnx.commit()
 
-          cursor.execute(sql, valores)
-          cnx.commit()
-     elif accion == 2 :
-        cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO")
-        espacios = cursor.fetchall()
-        print("\n=== ESPACIOS DEPORTIVOS ===")
+    elif opt == 2:
+        accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
+        if accion == 1:
+            NombreDisciplina = input('Nombre de Disciplina: ')
+            sql = """INSERT INTO DISCIPLINA (nombre_disciplina) VALUES (%s)"""
+            cursor.execute(sql, (NombreDisciplina,))
+            cnx.commit()
 
-        for espacio in espacios:
-                print(
-                f"ID: {espacio[0]} | "
-                f"Nombre espacio: {espacio[1]}| "
-                f"Ubicacion: {espacio[2]} |"
-                f"Capacidad: {espacio[3]}"
-            )
-        while True :
-             try : 
-                  editarID = int(input('ID a cambiar: \n'))
-                  newNombre_espacio = input('Nuevo nombre : \n')
-                  newUbicacion = input('Nueva ubicacion : \n')
-                  newCapacidad = int(input('Nueva capacidad : \n'))
-                  break
-             except ValueError :
-                  print('ID y capacidad deben ser numeros enteros')
-       
-        valores = (
-             newNombre_espacio,
-             newUbicacion,
-             newCapacidad,
-             editarID
-        )
-       
-        sql = """UPDATE ESPACIO_DEPORTIVO 
-        SET nombre_espacio = %s,
-        ubicacion = %s,
-        capacidad = %s
-        WHERE id_espacio = %s"""
-       
-        cursor.execute(sql, valores)
-        cnx.commit()
-
-     elif accion == 3 :
-
-        cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO")
-        espacios = cursor.fetchall()
-        print("\n=== ESPACIOS DEPORTIVOS ===")
-
-        for espacio in espacios:
-                print(
-                f"ID: {espacio[0]} | "
-                f"Nombre espacio: {espacio[1]}| "
-                f"Ubicacion: {espacio[2]} |"
-                f"Capacidad: {espacio[3]}"
-            )
-                
-        while True :
-             try : 
-                  eliminarID = int(input('ID a eliminar :\n '))
-                  break
-             except ValueError :
-                  print('ID debe ser un numero entero')
-
-        sql = """DELETE FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s"""
-        valores = (eliminarID,)
-        cursor.execute(sql, valores)
-        cnx.commit()
-     else : 
-          print('error')
-elif opt == 4 :
-     accion = int(input('1: Insertar, 2: Editar, 3: Eliminar'))
-     if accion == 1 :
-        
-            nombre_actividad = input('Nombre actividad : \n')
-            while True :
-                 try : 
-                      id_espacio = int(input('Id espacio\n'))
-                      break
-                 except ValueError :
-                      print('ID debe ser un numero entero')
-
-            cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
-            espacio = cursor.fetchone()
-            if espacio is None :
-                print('no existe un espacio con ese ID')
-                exit()
-
-            while True :
-                 try :
-                     id_disciplina = int(input('Id disciplina\n'))
-                     break
-                 except ValueError :
-                     print('ID debe ser un numero entero') 
-            
-            cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
-            disciplina = cursor.fetchone()
-            if disciplina is None :
-                print('no existe una disciplina con ese ID')
-                exit()
-            
-            
-            while True :
-                 try :
-                    cupo = int(input('Cupo Maximo\n'))
-                    diaSemana = input('Dia de semana\n')
+        elif accion == 2:
+            cursor.execute('SELECT * FROM DISCIPLINA')
+            disciplinas = cursor.fetchall()
+            print('\n=== DISCIPLINAS ===')
+            for disciplina in disciplinas:
+                print(f'ID: {disciplina[0]} | Nombre: {disciplina[1]}')
+            while True:
+                try:
+                    id_disciplina = int(input('ID de la disciplina a editar: '))
+                    nombreDisciplina = input('Nombre nuevo: ')
                     break
-                 except ValueError :
-                    print('Alguno de los formatos no es correcto intentelo de vuelta')
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            sql = """UPDATE DISCIPLINA SET nombre_disciplina = %s WHERE id_disciplina = %s"""
+            cursor.execute(sql, (nombreDisciplina, id_disciplina))
+            cnx.commit()
+
+        elif accion == 3:
+            cursor.execute('SELECT * FROM DISCIPLINA')
+            disciplinas = cursor.fetchall()
+            print('\n=== DISCIPLINAS ===')
+            for disciplina in disciplinas:
+                print(f'ID: {disciplina[0]} | Nombre: {disciplina[1]}')
+            while True:
+                try:
+                    id_disciplina = int(input('ID de la disciplina a eliminar: '))
+                    break
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            cursor.execute('DELETE FROM DISCIPLINA WHERE id_disciplina = %s', (id_disciplina,))
+            cnx.commit()
+
+    elif opt == 3:
+        accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
+        if accion == 1:
+            while True:
+                try:
+                    nombre_espacio = input('Nombre: ')
+                    ubicacion = input('Ubicacion: ')
+                    capacidad = int(input('Capacidad: '))
+                    break
+                except ValueError:
+                    print('Alguno de los formatos no es correcto, intentelo de vuelta')
+            sql = """INSERT INTO ESPACIO_DEPORTIVO (nombre_espacio, ubicacion, capacidad) VALUES (%s, %s, %s)"""
+            cursor.execute(sql, (nombre_espacio, ubicacion, capacidad))
+            cnx.commit()
+
+        elif accion == 2:
+            cursor.execute('SELECT * FROM ESPACIO_DEPORTIVO')
+            espacios = cursor.fetchall()
+            print('\n=== ESPACIOS DEPORTIVOS ===')
+            for espacio in espacios:
+                print(f'ID: {espacio[0]} | Nombre: {espacio[1]} | Ubicacion: {espacio[2]} | Capacidad: {espacio[3]}')
+            while True:
+                try:
+                    editarID = int(input('ID a cambiar: '))
+                    newNombre_espacio = input('Nuevo nombre: ')
+                    newUbicacion = input('Nueva ubicacion: ')
+                    newCapacidad = int(input('Nueva capacidad: '))
+                    break
+                except ValueError:
+                    print('ID y capacidad deben ser numeros enteros')
+            sql = """UPDATE ESPACIO_DEPORTIVO SET nombre_espacio = %s, ubicacion = %s, capacidad = %s WHERE id_espacio = %s"""
+            cursor.execute(sql, (newNombre_espacio, newUbicacion, newCapacidad, editarID))
+            cnx.commit()
+
+        elif accion == 3:
+            cursor.execute('SELECT * FROM ESPACIO_DEPORTIVO')
+            espacios = cursor.fetchall()
+            print('\n=== ESPACIOS DEPORTIVOS ===')
+            for espacio in espacios:
+                print(f'ID: {espacio[0]} | Nombre: {espacio[1]} | Ubicacion: {espacio[2]} | Capacidad: {espacio[3]}')
+            while True:
+                try:
+                    eliminarID = int(input('ID a eliminar: '))
+                    break
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            cursor.execute('DELETE FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s', (eliminarID,))
+            cnx.commit()
+
+    elif opt == 4:
+        accion = int(input('1: Insertar, 2: Editar, 3: Eliminar\n'))
+        if accion == 1:
+            nombre_actividad = input('Nombre actividad: ')
+            while True:
+                try:
+                    id_espacio = int(input('Id espacio: '))
+                    break
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            cursor.execute('SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s', (id_espacio,))
+            if cursor.fetchone() is None:
+                print('No existe un espacio con ese ID')
+                return
+
+            while True:
+                try:
+                    id_disciplina = int(input('Id disciplina: '))
+                    break
+                except ValueError:
+                    print('ID debe ser un numero entero')
+            cursor.execute('SELECT * FROM DISCIPLINA WHERE id_disciplina = %s', (id_disciplina,))
+            if cursor.fetchone() is None:
+                print('No existe una disciplina con ese ID')
+                return
+
+            while True:
+                try:
+                    cupo = int(input('Cupo Maximo: '))
+                    diaSemana = input('Dia de semana: ')
+                    break
+                except ValueError:
+                    print('Alguno de los formatos no es correcto, intentelo de vuelta')
 
             horario_inicio = None
             while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM:SS):\n ")
-                 try:
-                     # Intenta la conversión
-                     horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
-                     break  # Rompe el bucle si todo salió bien
-                 except ValueError:
-                     # Se ejecuta si el formato ingresado es incorrecto
-                     print("Formato incorrecto. Usa HH:MM:SS.")
-            
+                entrada = input('Hora de inicio (HH:MM:SS): ')
+                try:
+                    horario_inicio = datetime.strptime(entrada, '%H:%M:%S').time()
+                    break
+                except ValueError:
+                    print('Formato incorrecto. Usa HH:MM:SS.')
+
             horario_final = None
             while True:
-                 entrada = input("Ingresa la hora final (HH:MM:SS):\n ")
-                 try:
-                     # Intenta la conversión
-                     horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
-                     break  # Rompe el bucle si todo salió bien
-                 except ValueError:
-                     # Se ejecuta si el formato ingresado es incorrecto
-                     print("Formato incorrecto. Usa HH:MM:SS.")
-            
-            while True :
-                 estado = input('Estado :')
-                 if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
-                     print("NO EXISTE ESE ESTADO debe ser : abierta, cerrada, finalizada o cancelada\n")
-                 else :
-                     break
+                entrada = input('Hora final (HH:MM:SS): ')
+                try:
+                    horario_final = datetime.strptime(entrada, '%H:%M:%S').time()
+                    break
+                except ValueError:
+                    print('Formato incorrecto. Usa HH:MM:SS.')
+
+            while True:
+                estado = input('Estado (abierta/cerrada/finalizada/cancelada): ')
+                if estado not in ('abierta', 'cerrada', 'finalizada', 'cancelada'):
+                    print('Estado inválido. Debe ser: abierta, cerrada, finalizada o cancelada')
+                else:
+                    break
 
             sql = """INSERT INTO ACTIVIDAD
-                 (nombre_actividad, id_espacio, id_disciplina, cupo_maximo, dia_semana, horario_inicio, horario_fin, estado)
-                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-
-            valores = (
-                 nombre_actividad,
-                 id_espacio,
-                 id_disciplina,
-                 cupo,
-                 diaSemana,
-                 horario_inicio,
-                 horario_final,
-                 estado
-            )
-            cursor.execute(sql, valores)
+                     (nombre_actividad, id_espacio, id_disciplina, cupo_maximo, dia_semana, horario_inicio, horario_fin, estado)
+                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
+            cursor.execute(sql, (nombre_actividad, id_espacio, id_disciplina, cupo, diaSemana, horario_inicio, horario_final, estado))
             cnx.commit()
-     elif accion == 2 : 
-        cursor.execute("SELECT * FROM ACTIVIDAD")
-        actividades = cursor.fetchall()
-        print("\n=== ACTIVIDADES ===")
 
-        for actividad in actividades:
-                print(
-                f"ID: {actividad[0]} | "
-                f"Nombre actividad: {actividad[1]}| "
-                f"ID actividad: {actividad[2]} |"
-                f"ID disciplina: {actividad[3]} |"
-                f"cupo : {actividad[4]} |"
-                f"Dia : {actividad[5]} |"
-                f"horario inicio : {actividad[6]}|"
-                f"horario fin {actividad[7]}|"
-                f"estado : {actividad[8]}"
-            )
-                
-        editarID = int(input('ID de la actividad a modificar\n'))
-        cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(editarID,))
-        actividad = cursor.fetchone()
-        if actividad is None :
-            print('no existe una actividad con ese ID')
-            exit()
-        else :
-            nombreActividad = input('Nombre Actividad :\n')
-            id_espacio = int(input('Id espacio\n'))
-            cursor.execute("SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s",(id_espacio,))
-            espacio = cursor.fetchone()
-            if espacio is None :
-                print('no existe un espacio con ese ID')
-                exit()
+        elif accion == 2:
+            cursor.execute('SELECT * FROM ACTIVIDAD')
+            actividades = cursor.fetchall()
+            print('\n=== ACTIVIDADES ===')
+            for actividad in actividades:
+                print(f'ID: {actividad[0]} | Nombre: {actividad[1]} | Espacio: {actividad[2]} | Disciplina: {actividad[3]} | Cupo: {actividad[4]} | Dia: {actividad[5]} | Inicio: {actividad[6]} | Fin: {actividad[7]} | Estado: {actividad[8]}')
+            editarID = int(input('ID de la actividad a modificar: '))
+            cursor.execute('SELECT * FROM ACTIVIDAD WHERE id_actividad = %s', (editarID,))
+            if cursor.fetchone() is None:
+                print('No existe una actividad con ese ID')
+                return
 
+            nombreActividad = input('Nombre Actividad: ')
+            id_espacio = int(input('Id espacio: '))
+            cursor.execute('SELECT * FROM ESPACIO_DEPORTIVO WHERE id_espacio = %s', (id_espacio,))
+            if cursor.fetchone() is None:
+                print('No existe un espacio con ese ID')
+                return
 
-            id_disciplina = int(input('Id disciplina\n'))
-            cursor.execute("SELECT * FROM DISCIPLINA WHERE id_disciplina = %s",(id_disciplina,))
-            disciplina = cursor.fetchone()
-            if disciplina is None :
-                print('no existe una disciplina con ese ID')
-                exit()
-            
-            
-            
-            cupo = int(input('Cupo Maximo\n'))
-            diaSemana = input('Dia de semana\n')
-            
+            id_disciplina = int(input('Id disciplina: '))
+            cursor.execute('SELECT * FROM DISCIPLINA WHERE id_disciplina = %s', (id_disciplina,))
+            if cursor.fetchone() is None:
+                print('No existe una disciplina con ese ID')
+                return
+
+            cupo = int(input('Cupo Maximo: '))
+            diaSemana = input('Dia de semana: ')
+
             horario_inicio = None
             while True:
-                 entrada = input("Ingresa la hora de inicio (HH:MM:SS): \n")
-                 try:
-                     # Intenta la conversión
-                     horario_inicio = datetime.strptime(entrada, "%H:%M:%S").time()
-                     break  # Rompe el bucle si todo salió bien
-                 except ValueError:
-                     # Se ejecuta si el formato ingresado es incorrecto
-                     print("Formato incorrecto. Usa HH:MM:SS.")
-            
+                entrada = input('Hora de inicio (HH:MM:SS): ')
+                try:
+                    horario_inicio = datetime.strptime(entrada, '%H:%M:%S').time()
+                    break
+                except ValueError:
+                    print('Formato incorrecto. Usa HH:MM:SS.')
+
             horario_final = None
             while True:
-                 entrada = input("Ingresa la hora final (HH:MM:SS): \n")
-                 try:
-                     # Intenta la conversión
-                     horario_final = datetime.strptime(entrada, "%H:%M:%S").time()
-                     break  # Rompe el bucle si todo salió bien
-                 except ValueError:
-                     # Se ejecuta si el formato ingresado es incorrecto
-                     print("Formato incorrecto. Usa HH:MM:SS.")
-            while True :
-                 estado = input('Estado :\n')
-                 if estado != 'abierta' and estado != 'cerrada' and estado != 'finalizada' and estado != 'cancelada' :
-                     print("NO EXISTE ESE ESTADO debe ser : abierta, cerrada, finalizada o cancelada")
-                 else :
-                     break
+                entrada = input('Hora final (HH:MM:SS): ')
+                try:
+                    horario_final = datetime.strptime(entrada, '%H:%M:%S').time()
+                    break
+                except ValueError:
+                    print('Formato incorrecto. Usa HH:MM:SS.')
+
+            while True:
+                estado = input('Estado (abierta/cerrada/finalizada/cancelada): ')
+                if estado not in ('abierta', 'cerrada', 'finalizada', 'cancelada'):
+                    print('Estado inválido. Debe ser: abierta, cerrada, finalizada o cancelada')
+                else:
+                    break
+
             sql = """UPDATE ACTIVIDAD
-                SET nombre_actividad = %s,
-                id_espacio = %s,
-                id_disciplina = %s,
-                cupo_maximo = %s,
-                dia_semana = %s,
-                horario_inicio = %s,
-                horario_fin = %s,
-                estado = %s
-                WHERE id_actividad = %s"""
-            valores = (
-                 nombreActividad,
-                 id_espacio,
-                 id_disciplina,
-                 cupo,
-                 diaSemana,
-                 horario_inicio,
-                 horario_final,
-                 estado,
-                 editarID
-            )             
-            cursor.execute(sql, valores)
+                     SET nombre_actividad = %s, id_espacio = %s, id_disciplina = %s, cupo_maximo = %s,
+                         dia_semana = %s, horario_inicio = %s, horario_fin = %s, estado = %s
+                     WHERE id_actividad = %s"""
+            cursor.execute(sql, (nombreActividad, id_espacio, id_disciplina, cupo, diaSemana, horario_inicio, horario_final, estado, editarID))
             cnx.commit()
-     elif accion == 3 :
-        cursor.execute("SELECT * FROM ACTIVIDAD")
-        actividades = cursor.fetchall()
-        print("\n=== ACTIVIDADES ===")
 
-        for actividad in actividades:
-                print(
-                f"ID: {actividad[0]} | "
-                f"Nombre actividad: {actividad[1]}| "
-                f"ID actividad: {actividad[2]} |"
-                f"ID disciplina: {actividad[3]} |"
-                f"cupo : {actividad[4]} |"
-                f"Dia : {actividad[5]} |"
-                f"horario inicio : {actividad[6]}|"
-                f"horario fin {actividad[7]}|"
-                f"estado : {actividad[8]}"
-            )
-        borrarID = int(input('id a borrar\n'))
-        cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(borrarID,))
-        actividad = cursor.fetchone()
-        if actividad is None :
-            print('no existe una actividad con ese ID\n')
-            exit()
-        else : 
-             sql = """DELETE FROM ACTIVIDAD WHERE id_actividad = %s"""
-             valores = (borrarID,)
-             cursor.execute(sql, valores)
-             cnx.commit()
-     else : 
-        print('error')
-        exit()
-elif opt == 5 : 
-     while True :
-          try :
-            id_actividad = int(input('ID a actividad\n'))
-            break
-          except ValueError:
-            print("ID inválido. Debe ser un número entero.")
-     
-     cursor.execute("SELECT * FROM ACTIVIDAD WHERE id_actividad = %s",(id_actividad,))
-     actividad = cursor.fetchone()
-     if actividad is None :
-         print('no existe una actividad con ese ID\n')
-         exit()
-     while True :
-          try :
-            id_estudiante = int(input("ID del estudiante: \n"))
-            break
-          except ValueError:
-            print("ID inválido. Debe ser un número entero.")
-     cursor.execute("SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s",(id_estudiante,))
-     estudiante = cursor.fetchone()
-     if estudiante is None :
-         print('no existe un estudiante con ese ID\n')
-         exit()
-     inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
-elif opt == 6 :
-    registrarAsistencia(cnx)
-    
-elif opt == 7 : 
-     numeroConsulta = int(input('numero de consulta a realizar :\n 1 Actividad con max inscriptos\n 2 consulta actividades con cupos disponibles\n' \
-     ' 3 cantidad Inscriptos por disciplina\n 4 cantidad inscriptos por facultad\n 5 porcentaje ocupados por actividad\n ' \
-     '6 porcentaje de asistencia por actividad\n 7 estudiantes con 3 o mas inasistencias\n 8 Actividades con lista de espera\n 9 Estudiantes no inscriptos en ninguna actividad\n'
-     ' 10 Actividades con mas porcentaje de ausencias\n'))
+        elif accion == 3:
+            cursor.execute('SELECT * FROM ACTIVIDAD')
+            actividades = cursor.fetchall()
+            print('\n=== ACTIVIDADES ===')
+            for actividad in actividades:
+                print(f'ID: {actividad[0]} | Nombre: {actividad[1]} | Estado: {actividad[8]}')
+            borrarID = int(input('ID a borrar: '))
+            cursor.execute('SELECT * FROM ACTIVIDAD WHERE id_actividad = %s', (borrarID,))
+            if cursor.fetchone() is None:
+                print('No existe una actividad con ese ID')
+                return
+            cursor.execute('DELETE FROM ACTIVIDAD WHERE id_actividad = %s', (borrarID,))
+            cnx.commit()
 
-     if numeroConsulta == 1 :
-        actividadMaxInscriptos(cnx)   
+    elif opt == 5:
+        while True:
+            try:
+                id_actividad = int(input('ID actividad: '))
+                break
+            except ValueError:
+                print('ID inválido. Debe ser un número entero.')
+        cursor.execute('SELECT * FROM ACTIVIDAD WHERE id_actividad = %s', (id_actividad,))
+        if cursor.fetchone() is None:
+            print('No existe una actividad con ese ID')
+            return
+        while True:
+            try:
+                id_estudiante = int(input('ID del estudiante: '))
+                break
+            except ValueError:
+                print('ID inválido. Debe ser un número entero.')
+        cursor.execute('SELECT * FROM ESTUDIANTE WHERE id_estudiante = %s', (id_estudiante,))
+        if cursor.fetchone() is None:
+            print('No existe un estudiante con ese ID')
+            return
+        inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
 
-     elif numeroConsulta == 2 :
+    elif opt == 6:
+        registrarAsistencia(cnx)
+
+    elif opt == 7:
+        menu_consultas(cnx)
+    else :
+        print('Opción no válida')
+
+
+def menu_profesor(cnx):
+    print('Seleccione una accion:\n 1 Registrar asistencia\n 2 Consultas')
+    opt = int(input())
+    if opt == 1:
+        registrarAsistencia(cnx)
+    elif opt == 2:
+        menu_consultas(cnx)
+    else:
+        print('Opción no válida')
+
+
+def menu_estudiante(cnx):
+    print('Seleccione una accion:\n 1 Inscribirse en una actividad\n 2 Ver actividades con cupos disponibles')
+    opt = int(input())
+    if opt == 1:
+        while True:
+            try:
+                id_actividad = int(input('ID actividad: '))
+                break
+            except ValueError:
+                print('ID inválido. Debe ser un número entero.')
+        while True:
+            try:
+                id_estudiante = int(input('ID del estudiante: '))
+                break
+            except ValueError:
+                print('ID inválido. Debe ser un número entero.')
+        inscirpcion_estudiante(cnx, id_estudiante, id_actividad)
+    elif opt == 2:
         actividadesCuposDisponibles(cnx)
+    else:
+        print('Opción no válida')
 
-     elif numeroConsulta == 3 : 
-        cantInscriptosDisciplina(cnx)
-     
-     elif numeroConsulta == 4 :
-        cantInscriptosFacultad(cnx)
 
-     elif numeroConsulta == 5 :
-        porciento = porcentajeOcupacionActividad(cnx)
-        if porciento is None :
-            exit()
-        print(f'ocupada al : {porciento} % ')
-     elif numeroConsulta == 6 :
-        porcentajeAsistenciaActividad(cnx)
+# --- INICIO ---
 
-     elif numeroConsulta == 7 :
-        estudiantesConInasistencias(cnx)
-
-     elif numeroConsulta == 8 :
-        actividadesListaEspera(cnx)
-
-     elif numeroConsulta == 9 :
-        estudiantesNoInscriptos(cnx)
+while True :
+    print('Bienvenido al sistema de gestión de deportes universitarios\n Eliga usuario para continuar (administrador, estudiante, profesor)')
+    cnx, cursor, rol = ElegirUsuario()
+    if cnx is not None:
+        break
+    else:
+        print('No se pudo conectar. Intente nuevamente.(administrador, estudiante, profesor)')
         
-     elif numeroConsulta == 10 :
-        actividadConMasAusencias(cnx)
-else : exit()
 
-     
-                
+if rol == 'administrador':
+    while True:
+        menu_administrador(cnx, cursor)
+        quiereContinuar = input('¿Desea realizar otra acción? (s/n): ').lower()
+        if quiereContinuar != 's':
+            print('Saliendo del sistema')
+            break
+        quieresCambiarUsuario = input('¿Desea cambiar de usuario? (s/n): ').lower()
+        if quieresCambiarUsuario == 's':
+            cnx.close()
+            while True:
+                cnx, cursor, rol = ElegirUsuario()
+                if cnx is not None:
+                    break
+                else:
+                    print('No se pudo conectar. Intente nuevamente.(administrador, estudiante, profesor)')
             
-
-
-
-          
-        
-          
-    
+elif rol == 'profesor':
+    menu_profesor(cnx)
+elif rol == 'estudiante':
+    menu_estudiante(cnx)
