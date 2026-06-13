@@ -172,7 +172,8 @@ def actividadesListaEspera(cnx):
     cursor = cnx.cursor()
     cursor.execute("""SELECT a.nombre_actividad FROM ACTIVIDAD a
                    JOIN INSCRIPCION i on i.id_actividad = a.id_actividad
-                   WHERE i.estado_inscripcion = 'lista_espera'""")
+                   WHERE i.estado_inscripcion = 'lista_espera'
+                   group by a.nombre_actividad""")
     actividades = cursor.fetchall()
     if not actividades:
         print('No hay actividades con lista de espera')

@@ -67,6 +67,33 @@ CREATE TABLE ASISTENCIA(
     FOREIGN KEY(id_actividad) REFERENCES ACTIVIDAD(id_actividad),
     FOREIGN KEY(id_estudiante) REFERENCES ESTUDIANTE(id_estudiante)
 );
+
+--Chekeo de que no se pase de cantidad de inscriptos en una actividad en SQL    
+DELIMITER $$
+CREATE TRIGGER validar_cupo_inscripcion
+BEFORE INSERT ON INSCRIPCION
+FOR EACH ROW
+BEGIN
+    DECLARE inscriptos_actuales INT;
+    DECLARE cupo INT;
+
+    IF NEW.estado_inscripcion = 'inscripto' THEN
+        SELECT COUNT(*) INTO inscriptos_actuales
+        FROM INSCRIPCION
+        WHERE id_actividad = NEW.id_actividad AND estado_inscripcion = 'inscripto';
+
+        SELECT cupo_maximo INTO cupoMax
+        FROM ACTIVIDAD
+        WHERE id_actividad = NEW.id_actividad;
+
+        IF inscriptos_actuales >= cupoMax THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Error: el cupo de la actividad está lleno.';
+        END IF;
+    END IF;
+END$$
+DELIMITER ;
+
 -- =========================
 -- INSERTS ESTUDIANTE
 -- =========================
@@ -86,7 +113,9 @@ INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) V
 (40987654, 'Martín', 'Castro', 'martin.castro@fing.edu.uy', 'Ingeniería Química', 'FING'),
 (39876543, 'Paula', 'Vega', 'paula.vega@fcea.edu.uy', 'Economía', 'FCEA'),
 (38765432, 'Diego', 'Acosta', 'diego.acosta@fing.edu.uy', 'Ingeniería Industrial', 'FING'),
-(37654321, 'Micaela', 'Pintos', 'micaela.pintos@fder.edu.uy', 'Relaciones Internacionales', 'FDER');
+(37654321, 'Micaela', 'Pintos', 'micaela.pintos@fder.edu.uy', 'Relaciones Internacionales', 'FDER')
+(36543210, 'Rodrigo', 'Méndez', 'rodrigo.mendez@fing.edu.uy', 'Ingeniería en Computación', 'FING'),
+(35432109, 'Valeria', 'Núñez', 'valeria.nunez@fcea.edu.uy', 'Marketing', 'FCEA');
 
 -- =========================
 -- INSERTS DISCIPLINA
@@ -162,6 +191,53 @@ INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_
 (4, 5, '2026-03-10', 'inscripto'),
 (5, 3, '2026-03-11', 'inscripto');
 
+
+INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) VALUES
+
+
+-- =========================
+-- LISTA DE ESPERA - Tenis Principiantes (id_actividad=6, cupo=10)
+-- Ya tiene 1 inscripto (estudiante 14). Se agregan 9 para llenar el cupo
+-- y luego 3 en lista de espera.
+-- =========================
+INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion) VALUES
+(1,  6, '2026-03-10', 'inscripto'),
+(2,  6, '2026-03-10', 'inscripto'),
+(3,  6, '2026-03-10', 'inscripto'),
+(4,  6, '2026-03-11', 'inscripto'),
+(5,  6, '2026-03-11', 'inscripto'),
+(6,  6, '2026-03-11', 'inscripto'),
+(7,  6, '2026-03-12', 'inscripto'),
+(8,  6, '2026-03-12', 'inscripto'),
+(9,  6, '2026-03-12', 'inscripto'),
+-- Cupo lleno (10/10), los siguientes van a lista de espera
+(10, 6, '2026-03-13', 'lista_espera'),
+(11, 6, '2026-03-13', 'lista_espera'),
+(12, 6, '2026-03-13', 'lista_espera');
+
+-- =========================
+-- LISTA DE ESPERA - Basketball Intermedio (id_actividad=2, cupo=15)
+-- Ya tiene 2 inscriptos (estudiantes 4 y 13). Se agregan 13 para llenar el cupo
+-- y luego 2 en lista de espera (estudiantes 16 y 17, recién insertados).
+-- =========================
+INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_inscripcion) VALUES
+(1,  2, '2026-03-10', 'inscripto'),
+(2,  2, '2026-03-10', 'inscripto'),
+(3,  2, '2026-03-10', 'inscripto'),
+(5,  2, '2026-03-11', 'inscripto'),
+(6,  2, '2026-03-11', 'inscripto'),
+(7,  2, '2026-03-11', 'inscripto'),
+(8,  2, '2026-03-12', 'inscripto'),
+(9,  2, '2026-03-12', 'inscripto'),
+(10, 2, '2026-03-12', 'inscripto'),
+(11, 2, '2026-03-12', 'inscripto'),
+(12, 2, '2026-03-13', 'inscripto'),
+(14, 2, '2026-03-13', 'inscripto'),
+(15, 2, '2026-03-13', 'inscripto'),
+-- Cupo lleno (15/15), los siguientes van a lista de espera
+(16, 2, '2026-03-14', 'lista_espera'),
+(17, 2, '2026-03-14', 'lista_espera');
+
 -- Reinsertar asistencias igual que antes
 INSERT INTO ASISTENCIA (id_actividad, fecha, asistio, id_estudiante) VALUES
 -- Fútbol Recreativo (actividad 1)
@@ -199,12 +275,12 @@ DROP USER IF EXISTS 'profesor'@'localhost';
 DROP USER IF EXISTS 'estudiante'@'localhost';
 
 -- Administrador: acceso total a toda la base de datos
+
 CREATE USER 'administrador'@'localhost' IDENTIFIED BY 'Admin2025.';
 GRANT ALL PRIVILEGES ON gestion_deportes_universidad.* TO 'administrador'@'localhost';
 
 -- Profesor: puede registrar asistencia y ejecutar todas las consultas del sistema
--- registrarAsistencia -> SELECT en INSCRIPCION, INSERT en ASISTENCIA
--- Consultas (app.py opt 7) -> SELECT en todas las tablas
+
 CREATE USER 'profesor'@'localhost' IDENTIFIED BY 'Profesor2025.';
 GRANT SELECT ON gestion_deportes_universidad.ESTUDIANTE TO 'profesor'@'localhost';
 GRANT SELECT ON gestion_deportes_universidad.DISCIPLINA TO 'profesor'@'localhost';
@@ -214,8 +290,7 @@ GRANT SELECT ON gestion_deportes_universidad.INSCRIPCION TO 'profesor'@'localhos
 GRANT SELECT, INSERT ON gestion_deportes_universidad.ASISTENCIA TO 'profesor'@'localhost';
 
 -- Estudiante: puede inscribirse en actividades y ver actividades con cupos disponibles
--- inscripcion_estudiante -> SELECT en ACTIVIDAD, SELECT e INSERT en INSCRIPCION
--- actividadesCuposDisponibles -> SELECT en ACTIVIDAD e INSCRIPCION
+
 CREATE USER 'estudiante'@'localhost' IDENTIFIED BY 'Estudiante2025.';
 GRANT SELECT ON gestion_deportes_universidad.ACTIVIDAD TO 'estudiante'@'localhost';
 GRANT SELECT, INSERT ON gestion_deportes_universidad.INSCRIPCION TO 'estudiante'@'localhost';
