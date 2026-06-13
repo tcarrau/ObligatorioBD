@@ -1,5 +1,6 @@
-CREATE DATABASE IF NOT EXISTS gestion_deportes_universidad;
+CREATE DATABASE IF NOT EXISTS gestion_deportes_universidad CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE gestion_deportes_universidad;
+SET NAMES utf8mb4;
 
 CREATE TABLE ESTUDIANTE(
     id_estudiante int AUTO_INCREMENT,
@@ -68,14 +69,25 @@ CREATE TABLE ASISTENCIA(
     FOREIGN KEY(id_estudiante) REFERENCES ESTUDIANTE(id_estudiante)
 );
 
---Chekeo de que no se pase de cantidad de inscriptos en una actividad en SQL    
+-- Chequeo de que no se pase de cantidad de inscriptos en una actividad en SQL
 DELIMITER $$
 CREATE TRIGGER validar_cupo_inscripcion
 BEFORE INSERT ON INSCRIPCION
 FOR EACH ROW
 BEGIN
     DECLARE inscriptos_actuales INT;
-    DECLARE cupo INT;
+    DECLARE cupoMax INT;
+    DECLARE inscripcion_existente INT;
+
+    SELECT COUNT(*) INTO inscripcion_existente
+    FROM INSCRIPCION
+    WHERE id_actividad = NEW.id_actividad
+      AND id_estudiante = NEW.id_estudiante
+      AND estado_inscripcion != 'cancelada';
+    IF inscripcion_existente > 0 THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Error: el estudiante ya está inscripto en esta actividad.';
+    END IF;
 
     IF NEW.estado_inscripcion = 'inscripto' THEN
         SELECT COUNT(*) INTO inscriptos_actuales
@@ -113,9 +125,9 @@ INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) V
 (40987654, 'Martín', 'Castro', 'martin.castro@fing.edu.uy', 'Ingeniería Química', 'FING'),
 (39876543, 'Paula', 'Vega', 'paula.vega@fcea.edu.uy', 'Economía', 'FCEA'),
 (38765432, 'Diego', 'Acosta', 'diego.acosta@fing.edu.uy', 'Ingeniería Industrial', 'FING'),
-(37654321, 'Micaela', 'Pintos', 'micaela.pintos@fder.edu.uy', 'Relaciones Internacionales', 'FDER')
+(37654321, 'Micaela', 'Pintos', 'micaela.pintos@fder.edu.uy', 'Relaciones Internacionales', 'FDER'),
 (36543210, 'Rodrigo', 'Méndez', 'rodrigo.mendez@fing.edu.uy', 'Ingeniería en Computación', 'FING'),
-(35432109, 'Valeria', 'Núñez', 'valeria.nunez@fcea.edu.uy', 'Marketing', 'FCEA')
+(35432109, 'Valeria', 'Núñez', 'valeria.nunez@fcea.edu.uy', 'Marketing', 'FCEA'),
 (32352983, 'Federico', 'García', 'fedeGarcia@gmail.com', 'Ingeniería en Computación', 'FING');
 
 -- =========================
@@ -192,10 +204,6 @@ INSERT INTO INSCRIPCION (id_estudiante, id_actividad, fecha_inscripcion, estado_
 (4, 5, '2026-03-10', 'inscripto'),
 (5, 3, '2026-03-11', 'inscripto');
 
-
-INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) VALUES
-
-
 -- =========================
 -- LISTA DE ESPERA - Tenis Principiantes (id_actividad=6, cupo=10)
 -- Ya tiene 1 inscripto (estudiante 14). Se agregan 9 para llenar el cupo
@@ -245,6 +253,9 @@ INSERT INTO ASISTENCIA (id_actividad, fecha, asistio, id_estudiante) VALUES
 (1, '2026-04-06', TRUE, 1),
 (1, '2026-04-06', TRUE, 2),
 (1, '2026-04-06', FALSE, 10),
+(1, '2025-04-06', FALSE, 10),
+(1, '2026-03-06', FALSE, 10),
+(1, '2026-05-06', FALSE, 10),
 
 -- Basketball Intermedio (actividad 2)
 (2, '2026-04-07', TRUE, 4),
