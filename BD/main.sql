@@ -115,7 +115,8 @@ INSERT INTO ESTUDIANTE (documento, nombre, apellido, email, carrera, facultad) V
 (38765432, 'Diego', 'Acosta', 'diego.acosta@fing.edu.uy', 'Ingeniería Industrial', 'FING'),
 (37654321, 'Micaela', 'Pintos', 'micaela.pintos@fder.edu.uy', 'Relaciones Internacionales', 'FDER')
 (36543210, 'Rodrigo', 'Méndez', 'rodrigo.mendez@fing.edu.uy', 'Ingeniería en Computación', 'FING'),
-(35432109, 'Valeria', 'Núñez', 'valeria.nunez@fcea.edu.uy', 'Marketing', 'FCEA');
+(35432109, 'Valeria', 'Núñez', 'valeria.nunez@fcea.edu.uy', 'Marketing', 'FCEA')
+(32352983, 'Federico', 'García', 'fedeGarcia@gmail.com', 'Ingeniería en Computación', 'FING');
 
 -- =========================
 -- INSERTS DISCIPLINA
